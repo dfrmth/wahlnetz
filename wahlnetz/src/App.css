@@ -75,6 +75,41 @@ header {
   background-color: #fff;
 }
 
+.ranking-panel {
+  border: 1px solid #ddd;
+  padding: 1rem;
+  border-radius: 8px;
+  background-color: #fff;
+}
+
+.ranking-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.75rem 0;
+}
+
+.ranking-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+  font-size: 1.05rem;
+}
+
+.ranking-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.ranking-note {
+  font-size: 0.8rem;
+  color: #777;
+  margin: 0;
+}
+
 .checkbox-group {
   display: flex;
   flex-wrap: wrap;

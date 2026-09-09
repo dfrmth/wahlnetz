@@ -115,6 +115,31 @@ function App() {
     return leaders.join(', ');
   };
 
+  // Ähnlichkeits-Ranking: mittlere absolute Abweichung pro (gefiltertem) Thema.
+  // Je kleiner der Wert, desto näher die Partei an den eigenen Antworten.
+  // Skala ist 1-10, also max. mögliche Abweichung pro Thema = 9 -> daraus
+  // eine leichter lesbare "Übereinstimmung in %" ableiten (100% = 0 Abweichung
+  // über alle aktiven Themen, 0% = maximale Abweichung in jedem Thema).
+  const computeSimilarityRanking = () => {
+    const activeIndices = questions
+      .map((q, i) => ({ topic: q.topic, index: i }))
+      .filter(q => topicFilters[q.topic]);
+
+    if (activeIndices.length === 0) return [];
+
+    return Object.keys(partyData)
+      .filter(party => partyFilters[party])
+      .map(party => {
+        const totalAbsDiff = activeIndices.reduce((sum, { index }) => {
+          return sum + Math.abs((userAnswers[index] ?? 0) - partyData[party][index]);
+        }, 0);
+        const avgAbsDiff = totalAbsDiff / activeIndices.length;
+        const matchPercent = Math.round(100 - (avgAbsDiff / 9) * 100);
+        return { party, avgAbsDiff, matchPercent };
+      })
+      .sort((a, b) => a.avgAbsDiff - b.avgAbsDiff);
+  };
+
   // Erzeugt einen PNG-Blob der (unsichtbar gerenderten) Share-Card.
   // Kein Fremd-Hosting mehr nötig – das Bild bleibt lokal im Browser.
   const [shareState, setShareState] = useState('idle'); // idle | generating | done | error
@@ -224,6 +249,7 @@ function App() {
   
   if (step === 'result') {
     const chartData = buildChartData();
+    const similarityRanking = computeSimilarityRanking();
     
     // Filter umschalten
     const togglePartyFilter = (party) => {
@@ -268,6 +294,27 @@ function App() {
             </div>
           </section>
           
+          <section className="ranking-panel">
+            <h3>Am nächsten an deiner Position</h3>
+            <ol className="ranking-list">
+              {similarityRanking.map(({ party, matchPercent }) => (
+                <li key={party}>
+                  <span
+                    className="ranking-dot"
+                    style={{ backgroundColor: getPartyColor(party) }}
+                  />
+                  {party} – {matchPercent}% Übereinstimmung
+                </li>
+              ))}
+            </ol>
+            <p className="ranking-note">
+              Berechnung: mittlere absolute Abweichung deiner Antworten zu den
+              Partei-Werten über alle ausgewählten Themen (Skala 1–10), umgerechnet
+              in eine Übereinstimmung in %. 100 % hieße: identische Antworten in
+              jedem einzelnen Thema.
+            </p>
+          </section>
+
           <section className="chart-overview">
             <div className="chart-container">
               <ResponsiveContainer width="100%" height={400}>
