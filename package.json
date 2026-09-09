@@ -1,0 +1,9 @@
+{
+  "name": "wahlnetz-repo",
+  "private": true,
+  "description": "Repo-Root für Cloudflare Pages: das eigentliche React-Projekt liegt in ./wahlnetz. Dieses package.json existiert nur, damit Cloudflare Pages mit Standard-Einstellungen (Root-Verzeichnis '/', Build-Befehl 'npm run build') funktioniert, ohne dass im Dashboard ein Unterverzeichnis konfiguriert werden muss.",
+  "scripts": {
+    "start": "npm start --prefix wahlnetz",
+    "build": "npm install --prefix wahlnetz && npm run build --prefix wahlnetz"
+  }
+}
