@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   RadarChart,
   Radar,
@@ -49,11 +49,11 @@ function App() {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [userAnswers, setUserAnswers] = useState(Array(questions.length).fill(null));
   
-  // Filter-Zustände: Für Parteien und Themen (alle per Default aktiv)
+  // Filter-Zustände: Für Parteien und Themen (Parteien per Default inaktiv, Themen aktiv)
   const [partyFilters, setPartyFilters] = useState(() => {
     const filters = {};
     Object.keys(partyData).forEach(party => {
-      filters[party] = true;
+      filters[party] = false;  // Standardmäßig ausgeblendet, nur Top 3 werden aktiviert
     });
     return filters;
   });
@@ -64,6 +64,36 @@ function App() {
     });
     return filters;
   });
+  
+  // Berechne automatisch die Top 3 Parteien wenn zum Ergebnis gewechselt wird
+  useEffect(() => {
+    if (step === 'result') {
+      // Berechne Ranking
+      const activeIndices = questions
+        .map((q, i) => ({ topic: q.topic, index: i }))
+        .filter(q => topicFilters[q.topic]);
+      
+      if (activeIndices.length > 0) {
+        const ranking = Object.keys(partyData)
+          .map(party => {
+            const totalAbsDiff = activeIndices.reduce((sum, { index }) => {
+              return sum + Math.abs((userAnswers[index] ?? 0) - partyData[party][index]);
+            }, 0);
+            const avgAbsDiff = totalAbsDiff / activeIndices.length;
+            return { party, avgAbsDiff };
+          })
+          .sort((a, b) => a.avgAbsDiff - b.avgAbsDiff);
+        
+        // Setze nur die Top 3 Parteien auf true
+        const topThreeParties = ranking.slice(0, 3).map(r => r.party);
+        const newFilters = {};
+        Object.keys(partyData).forEach(party => {
+          newFilters[party] = topThreeParties.includes(party);
+        });
+        setPartyFilters(newFilters);
+      }
+    }
+  }, [step, userAnswers, topicFilters]);
   
   // Antwort des Nutzers verarbeiten
   const handleAnswer = (value) => {
