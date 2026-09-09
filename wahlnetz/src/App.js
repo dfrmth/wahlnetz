@@ -26,20 +26,20 @@ const getPartyColor = (party) => PARTY_COLORS[party] || "#00C49F";
 
 // Die Themenfragen, die nacheinander abgefragt werden
 const questions = [
-  { id: 0, topic: "Außenpolitik", question: "Außenpolitik: militarisch (1) oder diplomatisch (10)" },
-  { id: 1, topic: "Innenpolitik", question: "Innenpolitik: Kontrolle (1) oder Freiheit (10)" },
-  { id: 2, topic: "Migration", question: "Migration: restriktiv (1) oder offen (10)" },
-  { id: 3, topic: "Bürgergeld/Armut/Wohnen", question: "Bürgergeld/Armut/Wohnen: individuell (1) oder staatlich (10)" },
-  { id: 4, topic: "Arbeit", question: "Arbeit: arbeitgeberfreundlich (1) oder arbeitnehmerfreundlich (10)" },
-  { id: 5, topic: "Rente", question: "Rente: privat (1) oder öffentlich (10)" },
-  { id: 6, topic: "Pflege", question: "Pflege: Markt (1) oder Solidarität (10)" },
-  { id: 7, topic: "Kinder", question: "Kinder: individuell (1) oder staatlich (10)" },
-  { id: 8, topic: "Bildung", question: "Bildung: individuell (1) oder staatlich (10)" },
-  { id: 9, topic: "Sport", question: "Sport: individuell (1) oder staatlich (10)" },
-  { id: 10, topic: "Kultur", question: "Kultur: individuell (1) oder staatlich (10)" },
-  { id: 11, topic: "Schuldenbremse/Haushalt", question: "Schuldenbremse/Haushalt: Sparen (1) oder Investieren (10)" },
-  { id: 12, topic: "Steuern", question: "Steuern: Wachstum (1) oder Umverteilung (10)" },
-  { id: 13, topic: "Klima-/Energiepolitik", question: "Klima-/Energiepolitik: wenig (1) oder viel (10)" }
+  { id: 0, topic: "Außenpolitik", question: "Außenpolitik: militarisch (1) oder diplomatisch (10)", description: "" },
+  { id: 1, topic: "Innenpolitik", question: "Innenpolitik: Kontrolle (1) oder Freiheit (10)", description: "" },
+  { id: 2, topic: "Migration", question: "Migration: restriktiv (1) oder offen (10)", description: "" },
+  { id: 3, topic: "Bürgergeld/Armut/Wohnen", question: "Bürgergeld/Armut/Wohnen: individuell (1) oder staatlich (10)", description: "" },
+  { id: 4, topic: "Arbeit", question: "Arbeit: arbeitgeberfreundlich (1) oder arbeitnehmerfreundlich (10)", description: "" },
+  { id: 5, topic: "Rente", question: "Rente: privat (1) oder öffentlich (10)", description: "" },
+  { id: 6, topic: "Pflege", question: "Pflege: Markt (1) oder Solidarität (10)", description: "" },
+  { id: 7, topic: "Kinder", question: "Kinder: individuell (1) oder staatlich (10)", description: "" },
+  { id: 8, topic: "Bildung", question: "Bildung: individuell (1) oder staatlich (10)", description: "" },
+  { id: 9, topic: "Sport", question: "Sport: individuell (1) oder staatlich (10)", description: "" },
+  { id: 10, topic: "Kultur", question: "Kultur: individuell (1) oder staatlich (10)", description: "" },
+  { id: 11, topic: "Schuldenbremse/Haushalt", question: "Schuldenbremse/Haushalt: Sparen (1) oder Investieren (10)", description: "" },
+  { id: 12, topic: "Steuern", question: "Steuern: Wachstum (1) oder Umverteilung (10)", description: "" },
+  { id: 13, topic: "Klima-/Energiepolitik", question: "Klima-/Energiepolitik: wenig (1) oder viel (10)", description: "" }
 ];
 
 function App() {
@@ -242,6 +242,7 @@ function App() {
             ))}
           </div>
           <p>Frage {currentQuestion + 1} von {questions.length}</p>
+          {currentQ.description && <p>{currentQ.description}</p>}
         </main>
       </div>
     );
