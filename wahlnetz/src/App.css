@@ -282,6 +282,13 @@ header {
   align-self: flex-start;
 }
 
+.share-card-logo {
+  max-width: 80px;
+  max-height: 80px;
+  height: auto;
+  width: auto;
+}
+
 .share-card-emoji {
   font-size: 56px;
 }

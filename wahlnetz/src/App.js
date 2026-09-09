@@ -427,6 +427,7 @@ function App() {
           <div className="share-card-offscreen">
             <div ref={shareCardRef} className="share-card share-card-white">
               <div className="share-card-header">
+                <img src={logo} alt="Logo" className="share-card-logo" />
                 <span className="share-card-emoji">🕸️</span>
                 <div>
                   <div className="share-card-title">Wahlspinne</div>
@@ -442,8 +443,8 @@ function App() {
                 height={780}
                 data={chartData}
               >
-                <PolarGrid stroke="rgba(255,255,255,0.25)" />
-                <PolarAngleAxis dataKey="topic" tick={{ fill: '#fff', fontSize: 18 }} />
+                <PolarGrid stroke="rgba(0,0,0,0.2)" />
+                <PolarAngleAxis dataKey="topic" tick={{ fill: '#333', fontSize: 18 }} />
                 <Radar name="Du" dataKey="user" stroke="#FFD166" fill="#FFD166" fillOpacity={0.55} strokeWidth={3} />
                 {Object.keys(partyData).map(party =>
                   partyFilters?.[party] && (
