@@ -386,16 +386,20 @@ function App() {
             <div className="chart-container">
               <ResponsiveContainer width="100%" height={400}>
                 <RadarChart outerRadius="70%" data={chartData}>
-                  <PolarGrid />
-                  <PolarAngleAxis dataKey="topic" />
-                  <Tooltip />
-                  <Legend />
+                  <PolarGrid stroke="#e8e8e8" strokeDasharray="3 3" />
+                  <PolarAngleAxis dataKey="topic" tick={{ fontSize: 12, fill: '#666', fontWeight: 500 }} />
+                  <Tooltip 
+                    contentStyle={{ backgroundColor: '#fff', border: '1px solid #e8e8e8', borderRadius: '8px' }}
+                    formatter={(value) => Math.round(value * 10) / 10}
+                  />
+                  <Legend wrapperStyle={{ paddingTop: '1rem' }} />
                   <Radar
                     name="Du"
                     dataKey="user"
-                    stroke="#8884d8"
-                    fill="#8884d8"
-                    fillOpacity={0.7}
+                    stroke="#ffb81c"
+                    fill="#ffb81c"
+                    fillOpacity={0.6}
+                    strokeWidth={2.5}
                   />
                   {Object.keys(partyData).map(party =>
                     partyFilters?.[party] && (
@@ -472,9 +476,16 @@ function App() {
                 height={780}
                 data={chartData}
               >
-                <PolarGrid stroke="rgba(0,0,0,0.2)" />
-                <PolarAngleAxis dataKey="topic" tick={{ fill: '#333', fontSize: 18 }} />
-                <Radar name="Du" dataKey="user" stroke="#FFD166" fill="#FFD166" fillOpacity={0.55} strokeWidth={3} />
+                <PolarGrid stroke="#d8d8d8" strokeDasharray="3 3" />
+                <PolarAngleAxis dataKey="topic" tick={{ fill: '#333', fontSize: 18, fontWeight: 500 }} />
+                <Radar 
+                  name="Du" 
+                  dataKey="user" 
+                  stroke="#ffb81c" 
+                  fill="#ffb81c" 
+                  fillOpacity={0.5} 
+                  strokeWidth={3}
+                />
                 {Object.keys(partyData).map(party =>
                   partyFilters?.[party] && (
                     <Radar
@@ -503,7 +514,7 @@ function App() {
               </div>
 
               <div className="share-card-footer">
-                Erstellt mit der Wahlspinne · Parteipositionen KI-gestützt aus den Wahlprogrammen 2025
+                Parteipositionen KI-gestützt aus den Wahlprogrammen 2025 · Weiter außen = mehr Staat
               </div>
             </div>
           </div>
