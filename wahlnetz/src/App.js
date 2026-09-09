@@ -158,22 +158,6 @@ function App() {
         return dataPoint;
       });
   };
-  
-  // Ermittelt pro Thema, welche Partei(en) den höchsten Wert haben
-  const computeLeadingParty = (index) => {
-    let maxVal = -Infinity;
-    let leaders = [];
-    Object.keys(partyData).forEach(party => {
-      const val = partyData[party][index];
-      if (val > maxVal) {
-        maxVal = val;
-        leaders = [party];
-      } else if (val === maxVal) {
-        leaders.push(party);
-      }
-    });
-    return leaders.join(', ');
-  };
 
   // Ähnlichkeits-Ranking: mittlere absolute Abweichung pro (gefiltertem) Thema.
   // Je kleiner der Wert, desto näher die Partei an den eigenen Antworten.
