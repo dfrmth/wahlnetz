@@ -184,11 +184,35 @@ function App() {
       .sort((a, b) => a.avgAbsDiff - b.avgAbsDiff);
   };
 
-  // Neue Insights: Größte & kleinste Unterschiede für ALLE Parteien
-  const computeGreatestDifferences = () => {
-    const activeIndices = questions
-      .map((q, i) => ({ topic: q.topic, index: i }))
-      .filter(q => topicFilters[q.topic]);
+  // Für jedes Thema:
+  // - Partei mit der größten Nähe zur eigenen Position
+  // - Partei mit der größten Entfernung zur eigenen Position
+  const computeTopicInsights = () => {
+    return questions
+      .map((question, index) => {
+        if (!topicFilters[question.topic]) return null;
+
+        const partyDifferences = Object.keys(partyData).map(party => ({
+          party,
+          diff: Math.abs(
+            (userAnswers[index] ?? 0) - partyData[party][index]
+          )
+        }));
+
+        const nearest = [...partyDifferences]
+          .sort((a, b) => a.diff - b.diff)[0];
+
+        const furthest = [...partyDifferences]
+          .sort((a, b) => b.diff - a.diff)[0];
+
+        return {
+          topic: question.topic,
+          nearest,
+          furthest
+        };
+      })
+      .filter(Boolean);
+  };
     
     const differences = {};
     Object.keys(partyData).forEach(party => {
@@ -203,84 +227,124 @@ function App() {
     });
     return differences;
   };
-  
-  // Neue Insights: User-Konsistenz (wie variabel sind die Antworten)
-  const computeConsistency = () => {
-    const validAnswers = userAnswers.filter(a => a !== null);
-    if (validAnswers.length === 0) return 0;
-    const avg = validAnswers.reduce((a, b) => a + b, 0) / validAnswers.length;
-    const variance = validAnswers.reduce((sum, val) => sum + Math.pow(val - avg, 2), 0) / validAnswers.length;
-    const stdDev = Math.sqrt(variance);
-    // Normalisiere auf 0-100 Skala (0 = sehr konsistent, 100 = sehr variabel)
-    return Math.round((stdDev / 4.5) * 100);
-  };
-  
-  // Helper: Konsistenz-Label
-  const getConsistencyLabel = () => {
-    const consistency = computeConsistency();
-    if (consistency < 25) return '🎯 Sehr konsistent';
-    if (consistency < 50) return '⚖️ Gemischt';
-    if (consistency < 75) return '📊 Variabel';
-    return '🌈 Sehr vielfältig';
-  };
 
   // Erzeugt einen PNG-Blob der (unsichtbar gerenderten) Share-Card.
   // Kein Fremd-Hosting mehr nötig – das Bild bleibt lokal im Browser.
   const [shareState, setShareState] = useState('idle'); // idle | generating | done | error
+  const [shareImageBlob, setShareImageBlob] = useState(null);
   const shareCardRef = useRef(null);
 
-  const generateShareImage = async () => {
-    const node = shareCardRef.current;
-    if (!node) return null;
-    const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#ffffff' });
-    return new Promise((resolve) => {
-      canvas.toBlob((blob) => resolve(blob), "image/png");
-    });
+  // Erzeugt einen PNG-Blob der Share-Card.
+// Das Bild wird bereits auf der Ergebnisseite vorbereitet,
+// damit navigator.share() später direkt beim Button-Klick
+// aufgerufen werden kann.
+const generateShareImage = async () => {
+  const node = shareCardRef.current;
+  if (!node) return null;
+
+  const canvas = await html2canvas(node, {
+    scale: 2,
+    backgroundColor: '#ffffff'
+  });
+
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => resolve(blob), 'image/png');
+  });
+};
+
+// Share-Bild vorbereiten, sobald die Ergebnisseite geladen ist.
+useEffect(() => {
+  if (step !== 'result') return;
+
+  let cancelled = false;
+
+  const prepareShareImage = async () => {
+    // Kurz warten, damit die unsichtbare Share-Card vollständig
+    // gerendert wurde.
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    const blob = await generateShareImage();
+
+    if (!cancelled && blob) {
+      setShareImageBlob(blob);
+    }
   };
 
-  const handleShare = async () => {
-    setShareState('generating');
-    try {
-      const imageBlob = await generateShareImage();
-      if (!imageBlob) throw new Error('Bild konnte nicht erzeugt werden.');
+  prepareShareImage();
 
-      const file = new File([imageBlob], 'wahlspinne.png', { type: 'image/png' });
-      const shareData = {
-        files: [file],
-        title: 'Meine Wahlspinne',
-        text: 'Mein politisches Netzdiagramm zur Bundestagswahl 2025 🕸️ #Wahlspinne',
-      };
+  return () => {
+    cancelled = true;
+  };
+}, [step, topicFilters, partyFilters, userAnswers]);
 
-      // Bevorzugt: natives Share-Sheet des Geräts (funktioniert u. a. mit
-      // Instagram, X/Twitter, WhatsApp, Telegram, Mail – ganz ohne Umweg
-      // über einen extern gehosteten Upload).
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share(shareData);
+const handleShare = async () => {
+  const shareDataBase = {
+    title: 'Meine Wahlspinne',
+    text: 'Mein politisches Netzdiagramm zur Bundestagswahl 2025 🕸️ #Wahlspinne'
+  };
+
+  try {
+    // Wenn das Bild bereits vorbereitet wurde:
+    if (shareImageBlob) {
+      const file = new File(
+        [shareImageBlob],
+        'wahlspinne.png',
+        { type: 'image/png' }
+      );
+
+      // Native Android-/iOS-Share-Auswahl
+      if (
+        navigator.share &&
+        navigator.canShare &&
+        navigator.canShare({ files: [file] })
+      ) {
+        await navigator.share({
+          ...shareDataBase,
+          files: [file]
+        });
+
         setShareState('done');
         return;
       }
+    }
 
-      // Fallback (z. B. Desktop-Browser ohne Web-Share-Unterstützung):
-      // Bild direkt herunterladen, damit man es manuell hochladen kann.
-      const url = URL.createObjectURL(imageBlob);
+    // Fallback: Native Share-Auswahl ohne Bild.
+    // Das ist besser als automatisch herunterzuladen,
+    // wenn der Browser Web Share grundsätzlich unterstützt.
+    if (navigator.share) {
+      await navigator.share(shareDataBase);
+      setShareState('done');
+      return;
+    }
+
+    // Letzter Fallback für Desktop-Browser ohne Web Share.
+    if (shareImageBlob) {
+      const url = URL.createObjectURL(shareImageBlob);
       const link = document.createElement('a');
+
       link.href = url;
       link.download = 'wahlspinne.png';
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+
       URL.revokeObjectURL(url);
       setShareState('done');
-    } catch (error) {
-      // AbortError = Nutzer hat das Share-Sheet einfach geschlossen, kein echter Fehler
-      if (error?.name !== 'AbortError') {
-        console.error('Fehler beim Teilen:', error);
-        setShareState('error');
-      } else {
-        setShareState('idle');
-      }
+    } else {
+      throw new Error('Bild konnte nicht erzeugt werden.');
     }
-  };
+  } catch (error) {
+    // Nutzer hat das native Share-Menü geschlossen
+    if (error?.name === 'AbortError') {
+      setShareState('idle');
+      return;
+    }
+
+    console.error('Fehler beim Teilen:', error);
+    setShareState('error');
+  }
+};
   
 
   // Rendern der verschiedenen Phasen
@@ -288,7 +352,16 @@ function App() {
     return (
       <div className="container">
         <header>
-          <img src={logo} alt="Logo" className="logo" />
+          <button
+  className="logo-button"
+  onClick={() => {
+    setStep('welcome');
+    setCurrentQuestion(0);
+  }}
+  aria-label="Zur Startseite"
+>
+  <img src={logo} alt="Wahlspinne" className="logo" />
+</button>
         </header>
         <main className="welcome-box">
           <h1>Willkommen bei der Wahlspinne!</h1>
@@ -302,27 +375,13 @@ function App() {
         </main>
         <footer className="app-footer">
           <div className="footer-content">
-            <div className="footer-section">
-              <h4>Über die Wahlspinne</h4>
-              <p>Die Wahlspinne hilft dir, deine politischen Positionen mit den Positionen der Bundestagsparteien zu vergleichen.</p>
+            <div className="footer-links">
+              <a href="#methodology">Methodik</a>
+              <a href="#about">Über uns</a>
+              <a href="#impressum">Impressum</a>
+              <a href="#datenschutz">Datenschutz</a>
+              <span>&copy; 2025 Wahlspinne</span>
             </div>
-            <div className="footer-section">
-              <h4>Links</h4>
-              <ul>
-                <li><a href="#methodology">Methodik</a></li>
-                <li><a href="#about">Über uns</a></li>
-              </ul>
-            </div>
-            <div className="footer-section">
-              <h4>Rechtliches</h4>
-              <ul>
-                <li><a href="#impressum">Impressum</a></li>
-                <li><a href="#datenschutz">Datenschutz</a></li>
-              </ul>
-            </div>
-          </div>
-          <div className="footer-bottom">
-            <p>&copy; 2025 Wahlspinne. Alle Rechte vorbehalten.</p>
           </div>
         </footer>
       </div>
@@ -334,7 +393,16 @@ function App() {
     return (
       <div className="container">
         <header>
-          <img src={logo} alt="Logo" className="logo" />
+          <button
+            className="logo-button"
+            onClick={() => {
+              setStep('welcome');
+              setCurrentQuestion(0);
+            }}
+            aria-label="Zur Startseite"
+          >
+            <img src={logo} alt="Wahlspinne" className="logo" />
+          </button>
         </header>
         <main className={`question-box question-slide-in ${fadeDirection ? `fade-out-${fadeDirection}` : ''}`}>
           <h2>{currentQ.question}</h2>
@@ -373,27 +441,13 @@ function App() {
         </main>
         <footer className="app-footer">
           <div className="footer-content">
-            <div className="footer-section">
-              <h4>Über die Wahlspinne</h4>
-              <p>Die Wahlspinne hilft dir, deine politischen Positionen mit den Positionen der Bundestagsparteien zu vergleichen.</p>
+            <div className="footer-links">
+              <a href="#methodology">Methodik</a>
+              <a href="#about">Über uns</a>
+              <a href="#impressum">Impressum</a>
+              <a href="#datenschutz">Datenschutz</a>
+              <span>&copy; 2025 Wahlspinne</span>
             </div>
-            <div className="footer-section">
-              <h4>Links</h4>
-              <ul>
-                <li><a href="#methodology">Methodik</a></li>
-                <li><a href="#about">Über uns</a></li>
-              </ul>
-            </div>
-            <div className="footer-section">
-              <h4>Rechtliches</h4>
-              <ul>
-                <li><a href="#impressum">Impressum</a></li>
-                <li><a href="#datenschutz">Datenschutz</a></li>
-              </ul>
-            </div>
-          </div>
-          <div className="footer-bottom">
-            <p>&copy; 2025 Wahlspinne. Alle Rechte vorbehalten.</p>
           </div>
         </footer>
       </div>
@@ -415,7 +469,16 @@ function App() {
     return (
       <div className="container">
         <header>
-          <img src={logo} alt="Logo" className="logo" />
+          <button
+            className="logo-button"
+            onClick={() => {
+              setStep('welcome');
+              setCurrentQuestion(0);
+            }}
+            aria-label="Zur Startseite"
+          >
+            <img src={logo} alt="Wahlspinne" className="logo" />
+          </button>
         </header>
         <main className="result-page">
           {/* Filter-Menu */}
@@ -423,11 +486,33 @@ function App() {
             <button 
               className="filter-toggle-button"
               onClick={() => setShowFilterMenu(!showFilterMenu)}
-              aria-label="Filter-Menü öffnen/schließen"
+              aria-label="Parteien und Themen filtern"
             >
-              <span className="filter-icon">⚙️</span>
-              Filter
-              <span className={`chevron ${showFilterMenu ? 'open' : ''}`}>▼</span>
+              <span className="filter-icon" aria-hidden="true">
+                <svg
+                  viewBox="0 0 24 24"
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M3 5h18" />
+                  <path d="M6 12h12" />
+                  <path d="M10 19h4" />
+                </svg>
+              </span>
+              
+              <span>Filtere Parteien und Themen</span>
+              
+              <span
+                className={`chevron ${showFilterMenu ? 'open' : ''}`}
+                aria-hidden="true"
+              >
+                ▼
+              </span>
             </button>
             
             {showFilterMenu && (
@@ -467,28 +552,6 @@ function App() {
             )}
           </section>
           
-          {/* Ranking-Panel */}
-          <section className="ranking-panel">
-            <h3>Am nächsten an deiner Position</h3>
-            <ol className="ranking-list">
-              {similarityRanking.map(({ party, matchPercent }) => (
-                <li key={party}>
-                  <span
-                    className="ranking-dot"
-                    style={{ backgroundColor: getPartyColor(party) }}
-                  />
-                  {party} – {matchPercent}% Übereinstimmung
-                </li>
-              ))}
-            </ol>
-            <p className="ranking-note">
-              Berechnung: mittlere absolute Abweichung deiner Antworten zu den
-              Partei-Werten über alle ausgewählten Themen (Skala 1–10), umgerechnet
-              in eine Übereinstimmung in %. 100 % hieße: identische Antworten in
-              jedem einzelnen Thema.
-            </p>
-          </section>
-
           <section className="chart-overview">
             <div className="chart-container">
               <ResponsiveContainer width="100%" height={400}>
@@ -526,59 +589,44 @@ function App() {
             {/* Neue Insights */}
             <div className="insights-panel">
               <h3>Deine politischen Insights</h3>
-              
-              <div className="insight-card">
-                <div className="insight-title">Größte Unterschiede zu jeder Partei</div>
-                <div className="insight-content">
-                  {Object.entries(computeGreatestDifferences()).map(([party, diffs]) => (
-                    <div key={party} className="insight-item">
-                      <span className="insight-party" style={{ color: getPartyColor(party) }}>●</span>
-                      <div className="insight-details">
-                        <div><strong>{party}</strong></div>
-                        <div className="insight-diff-item">
-                          <span className="label">Größter Unterschied:</span>
-                          <span className="topic">{diffs.greatest?.topic || 'N/A'}</span>
-                        </div>
-                        <div className="insight-diff-item">
-                          <span className="label">Größte Übereinstimmung:</span>
-                          <span className="topic">{diffs.nearest?.topic || 'N/A'}</span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              <div className="insight-card">
-                <div className="insight-title">Deine Konsistenz</div>
-                <div className="insight-content">
-                  <div className="consistency-bar">
-                    <div 
-                      className="consistency-fill" 
-                      style={{ width: `${computeConsistency()}%` }}
-                    ></div>
-                  </div>
-                  <p className="consistency-label">
-                    {getConsistencyLabel()}
-                  </p>
-                  <p className="consistency-description">
-                    {computeConsistency() < 25 ? 'Du hast eine sehr klare, konsistente politische Linie.' :
-                     computeConsistency() < 50 ? 'Du hast eine gemischte politische Haltung mit Schwerpunkten.' :
-                     computeConsistency() < 75 ? 'Du hast variable Positionen zu verschiedenen Themen.' :
-                     'Du hast eine sehr diverse und vielfältige politische Einstellung.'}
-                  </p>
-                </div>
-              </div>
             </div>
+          </section>
+
+          {/* Ranking-Panel */}
+          <section className="ranking-panel">
+            <h3>Am nächsten an deiner Position</h3>
+            <ol className="ranking-list">
+              {similarityRanking.map(({ party, matchPercent }) => (
+                <li key={party}>
+                  <span
+                    className="ranking-dot"
+                    style={{ backgroundColor: getPartyColor(party) }}
+                  />
+                  {party} – {matchPercent}% Übereinstimmung
+                </li>
+              ))}
+            </ol>
+            <p className="ranking-note">
+              Berechnung: mittlere absolute Abweichung deiner Antworten zu den
+              Partei-Werten über alle ausgewählten Themen (Skala 1–10), umgerechnet
+              in eine Übereinstimmung in %. 100 % hieße: identische Antworten in
+              jedem einzelnen Thema.
+            </p>
           </section>
           
           <section className="share-section">
-            <button onClick={handleShare} disabled={shareState === 'generating'} className="share-button">
-              {shareState === 'generating' ? 'Bild wird erstellt …' : '📤 Ergebnis teilen'}
+            <button
+              onClick={handleShare}
+              disabled={shareState === 'generating'}
+              className="share-button"
+            >
+              📤 Ergebnis teilen
             </button>
+
             {shareState === 'error' && (
               <p className="share-error">
-                Teilen hat nicht geklappt. Bitte versuche es erneut oder mach einen Screenshot.
+                Teilen hat nicht geklappt. Bitte versuche es erneut oder
+                mach einen Screenshot.
               </p>
             )}
           </section>
@@ -655,27 +703,13 @@ function App() {
         </main>
         <footer className="app-footer">
           <div className="footer-content">
-            <div className="footer-section">
-              <h4>Über die Wahlspinne</h4>
-              <p>Die Wahlspinne hilft dir, deine politischen Positionen mit den Positionen der Bundestagsparteien zu vergleichen.</p>
+            <div className="footer-links">
+              <a href="#methodology">Methodik</a>
+              <a href="#about">Über uns</a>
+              <a href="#impressum">Impressum</a>
+              <a href="#datenschutz">Datenschutz</a>
+              <span>&copy; 2025 Wahlspinne</span>
             </div>
-            <div className="footer-section">
-              <h4>Links</h4>
-              <ul>
-                <li><a href="#methodology">Methodik</a></li>
-                <li><a href="#about">Über uns</a></li>
-              </ul>
-            </div>
-            <div className="footer-section">
-              <h4>Rechtliches</h4>
-              <ul>
-                <li><a href="#impressum">Impressum</a></li>
-                <li><a href="#datenschutz">Datenschutz</a></li>
-              </ul>
-            </div>
-          </div>
-          <div className="footer-bottom">
-            <p>&copy; 2025 Wahlspinne. Alle Rechte vorbehalten.</p>
           </div>
         </footer>
       </div>
