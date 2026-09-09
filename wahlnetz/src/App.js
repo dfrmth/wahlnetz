@@ -10,6 +10,7 @@ import {
 } from 'recharts';
 import partyData from './data/parties.json';
 import html2canvas from "html2canvas";
+import logo from './logo.svg';
 import './App.css';
 
 // Einheitliche Partei-Farben (werden im Chart UND auf der Share-Card verwendet)
@@ -73,6 +74,23 @@ function App() {
       setCurrentQuestion(currentQuestion + 1);
     } else {
       setStep('result');
+    }
+  };
+  
+  // Navigation zwischen Fragen
+  const handlePrevQuestion = () => {
+    if (currentQuestion > 0) {
+      setCurrentQuestion(currentQuestion - 1);
+    }
+  };
+  
+  const handleNextQuestion = () => {
+    if (userAnswers[currentQuestion] !== null) {
+      if (currentQuestion < questions.length - 1) {
+        setCurrentQuestion(currentQuestion + 1);
+      } else {
+        setStep('result');
+      }
     }
   };
   
@@ -148,7 +166,7 @@ function App() {
   const generateShareImage = async () => {
     const node = shareCardRef.current;
     if (!node) return null;
-    const canvas = await html2canvas(node, { scale: 2, backgroundColor: null });
+    const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#ffffff' });
     return new Promise((resolve) => {
       canvas.toBlob((blob) => resolve(blob), "image/png");
     });
@@ -204,7 +222,7 @@ function App() {
     return (
       <div className="container">
         <header>
-          <div className="logo-placeholder">LOGO</div>
+          <img src={logo} alt="Logo" className="logo" />
         </header>
         <main className="welcome-box">
           <h1>Willkommen bei der Wahlspinne!</h1>
@@ -225,7 +243,7 @@ function App() {
     return (
       <div className="container">
         <header>
-          <div className="logo-placeholder">LOGO</div>
+          <img src={logo} alt="Logo" className="logo" />
         </header>
         <main className="question-box">
           <h2>{currentQ.question}</h2>
@@ -234,15 +252,33 @@ function App() {
               <button
                 key={num}
                 onClick={() => handleAnswer(num)}
-                className="option-button"
+                className={`option-button ${userAnswers[currentQuestion] === num ? 'selected' : ''}`}
                 aria-label={`Antwort ${num} von 10`}
               >
                 {num}
               </button>
             ))}
           </div>
-          <p>Frage {currentQuestion + 1} von {questions.length}</p>
-          {currentQ.description && <p>{currentQ.description}</p>}
+          {currentQ.description && <p className="description">{currentQ.description}</p>}
+          <div className="question-navigation">
+            <button 
+              onClick={handlePrevQuestion} 
+              className="nav-button nav-prev"
+              disabled={currentQuestion === 0}
+              aria-label="Zurück zur vorherigen Frage"
+            >
+              ⬅️ Zurück
+            </button>
+            <p className="question-counter">Frage {currentQuestion + 1} von {questions.length}</p>
+            <button 
+              onClick={handleNextQuestion} 
+              className="nav-button nav-next"
+              disabled={userAnswers[currentQuestion] === null}
+              aria-label="Weiter zur nächsten Frage"
+            >
+              Weiter ➡️
+            </button>
+          </div>
         </main>
       </div>
     );
@@ -263,7 +299,7 @@ function App() {
     return (
       <div className="container">
         <header>
-          <div className="logo-placeholder">LOGO</div>
+          <img src={logo} alt="Logo" className="logo" />
         </header>
         <main className="result-page">
           <section className="filter-panel">
@@ -389,7 +425,7 @@ function App() {
               Design (1080×1080, quadratisch) statt eines rohen UI-Screenshots.
               Bleibt im DOM (nicht display:none), damit html2canvas sie erfassen kann. */}
           <div className="share-card-offscreen">
-            <div ref={shareCardRef} className="share-card">
+            <div ref={shareCardRef} className="share-card share-card-white">
               <div className="share-card-header">
                 <span className="share-card-emoji">🕸️</span>
                 <div>

@@ -17,6 +17,13 @@ header {
   margin-bottom: 1rem;
 }
 
+.logo {
+  max-width: 100px;
+  max-height: 100px;
+  height: auto;
+  width: auto;
+}
+
 .logo-placeholder {
   width: 100px;
   height: 100px;
@@ -55,10 +62,66 @@ header {
 .option-button {
   width: 40px;
   height: 40px;
-  border: 1px solid #888;
+  border: 2px solid #888;
   border-radius: 4px;
   background-color: #f0f0f0;
   cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.option-button:hover {
+  background-color: #e0e0e0;
+  border-color: #555;
+}
+
+.option-button.selected {
+  background-color: #4c1d95;
+  color: #fff;
+  border-color: #4c1d95;
+  font-weight: bold;
+}
+
+.description {
+  font-size: 0.9rem;
+  color: #666;
+  margin: 0.5rem 0 0 0;
+  font-style: italic;
+}
+
+.question-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.nav-button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #f0f0f0;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.nav-button:hover:not(:disabled) {
+  background-color: #e0e0e0;
+  border-color: #888;
+}
+
+.nav-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.question-counter {
+  margin: 0;
+  font-weight: 500;
+  min-width: 120px;
+  text-align: center;
 }
 
 /* Ergebnis-Seite */
@@ -199,6 +262,19 @@ header {
   font-family: Arial, sans-serif;
 }
 
+.share-card-white {
+  background: #ffffff;
+  color: #1a1a1a;
+}
+
+.share-card-white .share-card-legend-item {
+  color: #1a1a1a;
+}
+
+.share-card-white .share-card-footer {
+  color: #666;
+}
+
 .share-card-header {
   display: flex;
   align-items: center;
@@ -213,11 +289,21 @@ header {
 .share-card-title {
   font-size: 44px;
   font-weight: bold;
+  color: #fff;
 }
 
 .share-card-subtitle {
   font-size: 22px;
   opacity: 0.85;
+  color: #fff;
+}
+
+.share-card-white .share-card-title {
+  color: #1a1a1a;
+}
+
+.share-card-white .share-card-subtitle {
+  color: #666;
 }
 
 .share-card-legend {
@@ -232,6 +318,7 @@ header {
   display: flex;
   align-items: center;
   gap: 8px;
+  color: #fff;
 }
 
 .share-card-dot {
@@ -241,10 +328,15 @@ header {
   display: inline-block;
 }
 
+.share-card-white .share-card-dot {
+  border: 1px solid #ccc;
+}
+
 .share-card-footer {
   font-size: 16px;
   opacity: 0.75;
   text-align: center;
+  color: #fff;
 }
 
 /* Responsive ab 768px */
