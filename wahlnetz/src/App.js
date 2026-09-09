@@ -343,8 +343,7 @@ const handleShare = async () => {
 
     console.error('Fehler beim Teilen:', error);
     setShareState('error');
-  }
-};
+  };
   
 
   // Rendern der verschiedenen Phasen
