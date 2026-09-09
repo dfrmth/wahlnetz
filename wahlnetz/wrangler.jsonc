@@ -1,9 +1,0 @@
-{
-  "$schema": "https://developers.cloudflare.com/workers/wrangler/configuration/",
-  "name": "wahlspinne",
-  "compatibility_date": "2026-09-09",
-  "assets": {
-    "directory": "./build",
-    "not_found_handling": "single-page-application"
-  }
-}
