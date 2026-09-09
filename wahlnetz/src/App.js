@@ -26,9 +26,9 @@ const getPartyColor = (party) => PARTY_COLORS[party] || "#00C49F";
 
 // Die Themenfragen, die nacheinander abgefragt werden
 const questions = [
-  { id: 0, topic: "Außenpolitik", question: "Außenpolitik: militarisch (1) oder diplomatisch (10)" },
-  { id: 1, topic: "Innenpolitik", question: "Innenpolitik: Kontrolle (1) oder Freiheit (10)" },
-  { id: 2, topic: "Migration", question: "Migration: restriktiv (1) oder offen (10)" },
+  { id: 0, topic: "Außenpolitik", question: "Außenpolitik: diplomatisch (1) oder militärisch (10)" },
+  { id: 1, topic: "Innenpolitik", question: "Innenpolitik: Freiheit (1) oder Kontrolle (10)" },
+  { id: 2, topic: "Migration", question: "Migration: offen (1) oder restriktiv (10)" },
   { id: 3, topic: "Bürgergeld/Armut/Wohnen", question: "Bürgergeld/Armut/Wohnen: individuell (1) oder staatlich (10)" },
   { id: 4, topic: "Arbeit", question: "Arbeit: arbeitgeberfreundlich (1) oder arbeitnehmerfreundlich (10)" },
   { id: 5, topic: "Rente", question: "Rente: privat (1) oder öffentlich (10)" },
