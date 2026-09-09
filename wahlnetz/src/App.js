@@ -48,6 +48,7 @@ function App() {
   const [step, setStep] = useState('welcome');
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [userAnswers, setUserAnswers] = useState(Array(questions.length).fill(null));
+  const [fadeDirection, setFadeDirection] = useState(null); // 'left' oder 'right' für Fade-Out
   
   // Filter-Zustände: Für Parteien und Themen (Parteien per Default inaktiv, Themen aktiv)
   const [partyFilters, setPartyFilters] = useState(() => {
@@ -64,6 +65,9 @@ function App() {
     });
     return filters;
   });
+  
+  // Filter-Menu Toggle
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
   
   // Berechne automatisch die Top 3 Parteien wenn zum Ergebnis gewechselt wird
   useEffect(() => {
@@ -100,11 +104,19 @@ function App() {
     const newAnswers = [...userAnswers];
     newAnswers[currentQuestion] = value;
     setUserAnswers(newAnswers);
-    if (currentQuestion < questions.length - 1) {
-      setCurrentQuestion(currentQuestion + 1);
-    } else {
-      setStep('result');
-    }
+    
+    // Setze Fade-Out Richtung: 1-5 = links, 6-10 = rechts
+    setFadeDirection(value <= 5 ? 'left' : 'right');
+    
+    // Warte auf Animation bevor zur nächsten Frage gewechselt wird
+    setTimeout(() => {
+      if (currentQuestion < questions.length - 1) {
+        setCurrentQuestion(currentQuestion + 1);
+      } else {
+        setStep('result');
+      }
+      setFadeDirection(null);
+    }, 300);
   };
   
   // Navigation zwischen Fragen
@@ -188,6 +200,46 @@ function App() {
       .sort((a, b) => a.avgAbsDiff - b.avgAbsDiff);
   };
 
+  // Neue Insights: Größte & kleinste Unterschiede für ALLE Parteien
+  const computeGreatestDifferences = () => {
+    const activeIndices = questions
+      .map((q, i) => ({ topic: q.topic, index: i }))
+      .filter(q => topicFilters[q.topic]);
+    
+    const differences = {};
+    Object.keys(partyData).forEach(party => {
+      const diffs = activeIndices
+        .map(q => ({ topic: q.topic, diff: Math.abs((userAnswers[q.index] ?? 0) - partyData[party][q.index]) }))
+        .sort((a, b) => b.diff - a.diff);
+      
+      differences[party] = {
+        greatest: diffs[0],
+        nearest: diffs[diffs.length - 1]
+      };
+    });
+    return differences;
+  };
+  
+  // Neue Insights: User-Konsistenz (wie variabel sind die Antworten)
+  const computeConsistency = () => {
+    const validAnswers = userAnswers.filter(a => a !== null);
+    if (validAnswers.length === 0) return 0;
+    const avg = validAnswers.reduce((a, b) => a + b, 0) / validAnswers.length;
+    const variance = validAnswers.reduce((sum, val) => sum + Math.pow(val - avg, 2), 0) / validAnswers.length;
+    const stdDev = Math.sqrt(variance);
+    // Normalisiere auf 0-100 Skala (0 = sehr konsistent, 100 = sehr variabel)
+    return Math.round((stdDev / 4.5) * 100);
+  };
+  
+  // Helper: Konsistenz-Label
+  const getConsistencyLabel = () => {
+    const consistency = computeConsistency();
+    if (consistency < 25) return '🎯 Sehr konsistent';
+    if (consistency < 50) return '⚖️ Gemischt';
+    if (consistency < 75) return '📊 Variabel';
+    return '🌈 Sehr vielfältig';
+  };
+
   // Erzeugt einen PNG-Blob der (unsichtbar gerenderten) Share-Card.
   // Kein Fremd-Hosting mehr nötig – das Bild bleibt lokal im Browser.
   const [shareState, setShareState] = useState('idle'); // idle | generating | done | error
@@ -260,10 +312,35 @@ function App() {
             Webe dir dein politisches Netz und vergleiche es mit den Bundestagsparteien.
             Klicke auf den Pfeil, um loszulegen.
           </p>
-          <button onClick={() => setStep('questions')} className="arrow-button">
-            ➡️
+          <button onClick={() => setStep('questions')} className="arrow-button" aria-label="Zum Fragebogen">
+            <span className="arrow-icon">→</span>
           </button>
         </main>
+        <footer className="app-footer">
+          <div className="footer-content">
+            <div className="footer-section">
+              <h4>Über die Wahlspinne</h4>
+              <p>Die Wahlspinne hilft dir, deine politischen Positionen mit den Positionen der Bundestagsparteien zu vergleichen.</p>
+            </div>
+            <div className="footer-section">
+              <h4>Links</h4>
+              <ul>
+                <li><a href="#methodology">Methodik</a></li>
+                <li><a href="#about">Über uns</a></li>
+              </ul>
+            </div>
+            <div className="footer-section">
+              <h4>Rechtliches</h4>
+              <ul>
+                <li><a href="#impressum">Impressum</a></li>
+                <li><a href="#datenschutz">Datenschutz</a></li>
+              </ul>
+            </div>
+          </div>
+          <div className="footer-bottom">
+            <p>&copy; 2025 Wahlspinne. Alle Rechte vorbehalten.</p>
+          </div>
+        </footer>
       </div>
     );
   }
@@ -275,7 +352,7 @@ function App() {
         <header>
           <img src={logo} alt="Logo" className="logo" />
         </header>
-        <main className="question-box">
+        <main className={`question-box question-slide-in ${fadeDirection ? `fade-out-${fadeDirection}` : ''}`}>
           <h2>{currentQ.question}</h2>
           <div className="options">
             {Array.from({ length: 10 }, (_, i) => i + 1).map(num => (
@@ -297,7 +374,7 @@ function App() {
               disabled={currentQuestion === 0}
               aria-label="Zurück zur vorherigen Frage"
             >
-              ⬅️ Zurück
+              <span className="arrow-icon">←</span> Zurück
             </button>
             <p className="question-counter">Frage {currentQuestion + 1} von {questions.length}</p>
             <button 
@@ -306,10 +383,35 @@ function App() {
               disabled={userAnswers[currentQuestion] === null}
               aria-label="Weiter zur nächsten Frage"
             >
-              Weiter ➡️
+              Weiter <span className="arrow-icon">→</span>
             </button>
           </div>
         </main>
+        <footer className="app-footer">
+          <div className="footer-content">
+            <div className="footer-section">
+              <h4>Über die Wahlspinne</h4>
+              <p>Die Wahlspinne hilft dir, deine politischen Positionen mit den Positionen der Bundestagsparteien zu vergleichen.</p>
+            </div>
+            <div className="footer-section">
+              <h4>Links</h4>
+              <ul>
+                <li><a href="#methodology">Methodik</a></li>
+                <li><a href="#about">Über uns</a></li>
+              </ul>
+            </div>
+            <div className="footer-section">
+              <h4>Rechtliches</h4>
+              <ul>
+                <li><a href="#impressum">Impressum</a></li>
+                <li><a href="#datenschutz">Datenschutz</a></li>
+              </ul>
+            </div>
+          </div>
+          <div className="footer-bottom">
+            <p>&copy; 2025 Wahlspinne. Alle Rechte vorbehalten.</p>
+          </div>
+        </footer>
       </div>
     );
   }
@@ -332,35 +434,56 @@ function App() {
           <img src={logo} alt="Logo" className="logo" />
         </header>
         <main className="result-page">
-          <section className="filter-panel">
-            <h3>Filter Parteien</h3>
-            <div className="checkbox-group">
-              {Object.keys(partyFilters).map(party => (
-                <label key={party}>
-                  <input
-                    type="checkbox"
-                    checked={partyFilters[party]}
-                    onChange={() => togglePartyFilter(party)}
-                  />
-                  {party}
-                </label>
-              ))}
-            </div>
-            <h3>Filter Themen</h3>
-            <div className="checkbox-group">
-              {questions.map(q => (
-                <label key={q.topic}>
-                  <input
-                    type="checkbox"
-                    checked={topicFilters[q.topic]}
-                    onChange={() => toggleTopicFilter(q.topic)}
-                  />
-                  {q.topic}
-                </label>
-              ))}
-            </div>
+          {/* Filter-Menu */}
+          <section className="filter-menu-section">
+            <button 
+              className="filter-toggle-button"
+              onClick={() => setShowFilterMenu(!showFilterMenu)}
+              aria-label="Filter-Menü öffnen/schließen"
+            >
+              <span className="filter-icon">⚙️</span>
+              Filter
+              <span className={`chevron ${showFilterMenu ? 'open' : ''}`}>▼</span>
+            </button>
+            
+            {showFilterMenu && (
+              <div className="filter-menu-content">
+                <div className="filter-group">
+                  <h4>Parteien</h4>
+                  <div className="checkbox-group compact">
+                    {Object.keys(partyFilters).map(party => (
+                      <label key={party}>
+                        <input
+                          type="checkbox"
+                          checked={partyFilters[party]}
+                          onChange={() => togglePartyFilter(party)}
+                        />
+                        {party}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="filter-group">
+                  <h4>Themen</h4>
+                  <div className="checkbox-group compact">
+                    {questions.map(q => (
+                      <label key={q.topic}>
+                        <input
+                          type="checkbox"
+                          checked={topicFilters[q.topic]}
+                          onChange={() => toggleTopicFilter(q.topic)}
+                        />
+                        {q.topic}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </section>
           
+          {/* Ranking-Panel */}
           <section className="ranking-panel">
             <h3>Am nächsten an deiner Position</h3>
             <ol className="ranking-list">
@@ -386,8 +509,8 @@ function App() {
             <div className="chart-container">
               <ResponsiveContainer width="100%" height={400}>
                 <RadarChart outerRadius="70%" data={chartData}>
-                  <PolarGrid stroke="#e8e8e8" strokeDasharray="3 3" />
-                  <PolarAngleAxis dataKey="topic" tick={{ fontSize: 12, fill: '#666', fontWeight: 500 }} />
+                  <PolarGrid stroke="#c8c8c8" strokeDasharray="2 3" strokeWidth={1.5} />
+                  <PolarAngleAxis dataKey="topic" tick={{ fontSize: 12, fill: '#333', fontWeight: 600 }} />
                   <Tooltip 
                     contentStyle={{ backgroundColor: '#fff', border: '1px solid #e8e8e8', borderRadius: '8px' }}
                     formatter={(value) => Math.round(value * 10) / 10}
@@ -416,26 +539,52 @@ function App() {
               </ResponsiveContainer>
             </div>
             
-            <div className="overview-table">
-              <h3>Themen & führende Parteien</h3>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Thema</th>
-                    <th>Führende Partei(en)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {questions.map((q, index) =>
-                    topicFilters[q.topic] && (
-                      <tr key={q.topic}>
-                        <td>{q.topic}</td>
-                        <td>{computeLeadingParty(index)}</td>
-                      </tr>
-                    )
-                  )}
-                </tbody>
-              </table>
+            {/* Neue Insights */}
+            <div className="insights-panel">
+              <h3>Deine politischen Insights</h3>
+              
+              <div className="insight-card">
+                <div className="insight-title">Größte Unterschiede zu jeder Partei</div>
+                <div className="insight-content">
+                  {Object.entries(computeGreatestDifferences()).map(([party, diffs]) => (
+                    <div key={party} className="insight-item">
+                      <span className="insight-party" style={{ color: getPartyColor(party) }}>●</span>
+                      <div className="insight-details">
+                        <div><strong>{party}</strong></div>
+                        <div className="insight-diff-item">
+                          <span className="label">Größter Unterschied:</span>
+                          <span className="topic">{diffs.greatest?.topic || 'N/A'}</span>
+                        </div>
+                        <div className="insight-diff-item">
+                          <span className="label">Größte Übereinstimmung:</span>
+                          <span className="topic">{diffs.nearest?.topic || 'N/A'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="insight-card">
+                <div className="insight-title">Deine Konsistenz</div>
+                <div className="insight-content">
+                  <div className="consistency-bar">
+                    <div 
+                      className="consistency-fill" 
+                      style={{ width: `${computeConsistency()}%` }}
+                    ></div>
+                  </div>
+                  <p className="consistency-label">
+                    {getConsistencyLabel()}
+                  </p>
+                  <p className="consistency-description">
+                    {computeConsistency() < 25 ? 'Du hast eine sehr klare, konsistente politische Linie.' :
+                     computeConsistency() < 50 ? 'Du hast eine gemischte politische Haltung mit Schwerpunkten.' :
+                     computeConsistency() < 75 ? 'Du hast variable Positionen zu verschiedenen Themen.' :
+                     'Du hast eine sehr diverse und vielfältige politische Einstellung.'}
+                  </p>
+                </div>
+              </div>
             </div>
           </section>
           
@@ -520,6 +669,31 @@ function App() {
           </div>
 
         </main>
+        <footer className="app-footer">
+          <div className="footer-content">
+            <div className="footer-section">
+              <h4>Über die Wahlspinne</h4>
+              <p>Die Wahlspinne hilft dir, deine politischen Positionen mit den Positionen der Bundestagsparteien zu vergleichen.</p>
+            </div>
+            <div className="footer-section">
+              <h4>Links</h4>
+              <ul>
+                <li><a href="#methodology">Methodik</a></li>
+                <li><a href="#about">Über uns</a></li>
+              </ul>
+            </div>
+            <div className="footer-section">
+              <h4>Rechtliches</h4>
+              <ul>
+                <li><a href="#impressum">Impressum</a></li>
+                <li><a href="#datenschutz">Datenschutz</a></li>
+              </ul>
+            </div>
+          </div>
+          <div className="footer-bottom">
+            <p>&copy; 2025 Wahlspinne. Alle Rechte vorbehalten.</p>
+          </div>
+        </footer>
       </div>
     );
   }
