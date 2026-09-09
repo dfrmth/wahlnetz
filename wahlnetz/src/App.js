@@ -428,7 +428,6 @@ function App() {
             <div ref={shareCardRef} className="share-card share-card-white">
               <div className="share-card-header">
                 <img src={logo} alt="Logo" className="share-card-logo" />
-                <span className="share-card-emoji">🕸️</span>
                 <div>
                   <div className="share-card-title">Wahlspinne</div>
                   <div className="share-card-subtitle">Bundestagswahl 2025</div>
