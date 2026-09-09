@@ -26,20 +26,20 @@ const getPartyColor = (party) => PARTY_COLORS[party] || "#00C49F";
 
 // Die Themenfragen, die nacheinander abgefragt werden
 const questions = [
-  { id: 0, topic: "Außenpolitik", question: "Außenpolitik: militarisch (1) oder diplomatisch (10)", description: "" },
-  { id: 1, topic: "Innenpolitik", question: "Innenpolitik: Kontrolle (1) oder Freiheit (10)", description: "" },
-  { id: 2, topic: "Migration", question: "Migration: restriktiv (1) oder offen (10)", description: "" },
-  { id: 3, topic: "Bürgergeld/Armut/Wohnen", question: "Bürgergeld/Armut/Wohnen: individuell (1) oder staatlich (10)", description: "" },
-  { id: 4, topic: "Arbeit", question: "Arbeit: arbeitgeberfreundlich (1) oder arbeitnehmerfreundlich (10)", description: "" },
-  { id: 5, topic: "Rente", question: "Rente: privat (1) oder öffentlich (10)", description: "" },
-  { id: 6, topic: "Pflege", question: "Pflege: Markt (1) oder Solidarität (10)", description: "" },
-  { id: 7, topic: "Kinder", question: "Kinder: individuell (1) oder staatlich (10)", description: "" },
-  { id: 8, topic: "Bildung", question: "Bildung: individuell (1) oder staatlich (10)", description: "" },
-  { id: 9, topic: "Sport", question: "Sport: individuell (1) oder staatlich (10)", description: "" },
-  { id: 10, topic: "Kultur", question: "Kultur: individuell (1) oder staatlich (10)", description: "" },
-  { id: 11, topic: "Schuldenbremse/Haushalt", question: "Schuldenbremse/Haushalt: Sparen (1) oder Investieren (10)", description: "" },
-  { id: 12, topic: "Steuern", question: "Steuern: Wachstum (1) oder Umverteilung (10)", description: "" },
-  { id: 13, topic: "Klima-/Energiepolitik", question: "Klima-/Energiepolitik: wenig (1) oder viel (10)", description: "" }
+  { id: 0, topic: "Außenpolitik", question: "Außenpolitik: Abschreckung (1) oder Soft Power (10)", description: "Kosten vs. Abhängigkeiten" },
+  { id: 1, topic: "Innenpolitik", question: "Innenpolitik: Kontrolle (1) oder Freiheit (10)", description: "Kriminalitätsbekämpfung vs. Überwachungsstaat" },
+  { id: 2, topic: "Migration", question: "Migration: restriktiv (1) oder offen (10)", description: "Fachkräftemangel vs. Überforderung" },
+  { id: 3, topic: "Bürgergeld/Armut/Wohnen", question: "Bürgergeld/Armut/Wohnen: Eigenverantwortung (1) oder Sicherheitsnetz (10)", description: "Ungleichheit vs. Kosten" },
+  { id: 4, topic: "Arbeit", question: "Arbeit: Wirtschaftswachstum (1) oder Arbeitsbedingungen (10)", description: "weniger Unternehmenssteuern vs. weniger Unternehmen" },
+  { id: 5, topic: "Rente", question: "Rente: privat (1) oder öffentlich (10)", description: "Anlagerisiko vs. Kosten" },
+  { id: 6, topic: "Pflege", question: "Pflege: Leistung (1) oder Bezahlbarkeit (10)", description: "Eigenkosten vs. Staatskosten" },
+  { id: 7, topic: "Kinder", question: "Kinder: Verantwortung bei Eltern (1) oder Staat (10)", description: "Ungleichheit vs. Kosten" },
+  { id: 8, topic: "Bildung", question: "Bildung: Leistung (1) oder Förderung (10)", description: "Ungleichheit vs. Kosten (aber auch Fachkräftebindung)" },
+  { id: 9, topic: "Sport", question: "Sport: Erfolge (1) oder Bürgergesundheit (10)", description: "Nationalstolz vs. Kosten (aber auch Prävention)" },
+  { id: 10, topic: "Kultur", question: "Kultur: Mainstream (1) oder Förderung (10)", description: "weniger Vielfalt vs. Kosten" },
+  { id: 11, topic: "Schuldenbremse/Haushalt", question: "Schuldenbremse/Haushalt: Handlungsspielraum (1) oder Transformation (10)", description: "Investitionsstau vs. Zinslast" },
+  { id: 12, topic: "Steuern", question: "Steuern: Wachstum (1) oder Umverteilung (10)", description: "Ungleichheit vs. Steuerflucht" },
+  { id: 13, topic: "Klima-/Energiepolitik", question: "Klima-/Energiepolitik: wenig (1) oder viel (10)", description: "spätere Anpassungskosten vs. heutige Transformationskosten" }
 ];
 
 function App() {
