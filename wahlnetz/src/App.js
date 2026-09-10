@@ -443,6 +443,7 @@ function App() {
     if (step === 'result') {
       const chartData = buildChartData();
       const similarityRanking = computeSimilarityRanking();
+      const topicInsights = computeTopicInsights();
       
       // Filter umschalten
       const togglePartyFilter = (party) => {
@@ -570,6 +571,21 @@ function App() {
                     )}
                   </RadarChart>
                 </ResponsiveContainer>
+              </div>
+              
+              {/* Neue Insights */}
+              <div className="insights-panel">
+                <h3>Deine politischen Insights</h3>
+                <ul className="insights-list">
+                  {topicInsights.map(({ topic, nearest, furthest }) => (
+                    <li key={topic}>
+                      <strong>{topic}:</strong> am nächsten an{' '}
+                      <span style={{ color: getPartyColor(nearest.party) }}>{nearest.party}</span>,
+                      am weitesten weg von{' '}
+                      <span style={{ color: getPartyColor(furthest.party) }}>{furthest.party}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
             </section>
 
