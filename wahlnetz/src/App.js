@@ -363,11 +363,10 @@ function App() {
             <div className="footer-content">
               <div className="footer-links">
                 <a href="#methodology">Methodik</a>
-                <a href="#about">Über uns</a>
                 <a href="#impressum">Impressum</a>
                 <a href="#datenschutz">Datenschutz</a>
               </div>
-              <p className="footer-copyright">&copy; 2025 Wahlspinne</p>
+              <p className="footer-copyright">&copy; 2026 Wahlspinne</p>
             </div>
           </footer>
         </div>
