@@ -352,15 +352,15 @@ function App() {
         <div className="container">
           <header>
             <button
-    className="logo-button"
-    onClick={() => {
-      setStep('welcome');
-      setCurrentQuestion(0);
-    }}
-    aria-label="Zur Startseite"
-  >
-    <img src={logo} alt="Wahlspinne" className="logo" />
-  </button>
+              className="logo-button"
+              onClick={() => {
+                setStep('welcome');
+                setCurrentQuestion(0);
+              }}
+              aria-label="Zur Startseite"
+            >
+            <img src={logo} alt="Wahlspinne" className="logo" />
+            </button>
           </header>
           <main className="welcome-box">
             <h1>Willkommen bei der Wahlspinne!</h1>
