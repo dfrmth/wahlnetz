@@ -213,20 +213,6 @@ function App() {
       })
       .filter(Boolean);
   };
-    
-    const differences = {};
-    Object.keys(partyData).forEach(party => {
-      const diffs = activeIndices
-        .map(q => ({ topic: q.topic, diff: Math.abs((userAnswers[q.index] ?? 0) - partyData[party][q.index]) }))
-        .sort((a, b) => b.diff - a.diff);
-      
-      differences[party] = {
-        greatest: diffs[0],
-        nearest: diffs[diffs.length - 1]
-      };
-    });
-    return differences;
-  };
 
   // Erzeugt einen PNG-Blob der (unsichtbar gerenderten) Share-Card.
   // Kein Fremd-Hosting mehr nötig – das Bild bleibt lokal im Browser.
@@ -343,7 +329,8 @@ function App() {
 
       console.error('Fehler beim Teilen:', error);
       setShareState('error');
-    };
+    }
+  };
   
 
     // Rendern der verschiedenen Phasen
@@ -583,11 +570,6 @@ function App() {
                     )}
                   </RadarChart>
                 </ResponsiveContainer>
-              </div>
-              
-              {/* Neue Insights */}
-              <div className="insights-panel">
-                <h3>Deine politischen Insights</h3>
               </div>
             </section>
 
