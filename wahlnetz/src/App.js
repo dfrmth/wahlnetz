@@ -412,7 +412,7 @@ function App() {
                 disabled={currentQuestion === 0}
                 aria-label="Zurück zur vorherigen Frage"
               >
-                <span className="arrow-icon">←</span> Zurück
+                <span className="arrow-icon">←</span>
               </button>
               <p className="question-counter">Frage {currentQuestion + 1} von {questions.length}</p>
               <button 
@@ -421,7 +421,7 @@ function App() {
                 disabled={userAnswers[currentQuestion] === null}
                 aria-label="Weiter zur nächsten Frage"
               >
-                Weiter <span className="arrow-icon">→</span>
+                <span className="arrow-icon">→</span>
               </button>
             </div>
           </main>
@@ -563,8 +563,8 @@ function App() {
             </section>
             
             <section className="chart-overview">
-              <h3>Dein politisches Netz</h3>
               <div className="chart-container">
+                <h3>Dein politisches Netz</h3>
                 <ResponsiveContainer width="100%" height={400}>
                   <RadarChart outerRadius="70%" data={chartData}>
                     <PolarGrid stroke="#c8c8c8" strokeDasharray="2 3" strokeWidth={1.5} />
