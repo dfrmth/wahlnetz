@@ -366,8 +366,8 @@ function App() {
                 <a href="#about">Über uns</a>
                 <a href="#impressum">Impressum</a>
                 <a href="#datenschutz">Datenschutz</a>
-                <span>&copy; 2025 Wahlspinne</span>
               </div>
+              <p className="footer-copyright">&copy; 2025 Wahlspinne</p>
             </div>
           </footer>
         </div>
@@ -432,8 +432,8 @@ function App() {
                 <a href="#about">Über uns</a>
                 <a href="#impressum">Impressum</a>
                 <a href="#datenschutz">Datenschutz</a>
-                <span>&copy; 2025 Wahlspinne</span>
               </div>
+              <p className="footer-copyright">&copy; 2025 Wahlspinne</p>
             </div>
           </footer>
         </div>
@@ -539,6 +539,28 @@ function App() {
               )}
             </section>
             
+            {/* Ranking-Panel */}
+            <section className="ranking-panel">
+              <h3>Am nächsten an deiner Position</h3>
+              <ol className="ranking-list">
+                {similarityRanking.map(({ party, matchPercent }) => (
+                  <li key={party}>
+                    <span
+                      className="ranking-dot"
+                      style={{ backgroundColor: getPartyColor(party) }}
+                    />
+                    {party} – {matchPercent}% Übereinstimmung
+                  </li>
+                ))}
+              </ol>
+              <p className="ranking-note">
+                Berechnung: mittlere absolute Abweichung deiner Antworten zu den
+                Partei-Werten über alle ausgewählten Themen (Skala 1–10), umgerechnet
+                in eine Übereinstimmung in %. 100 % hieße: identische Antworten in
+                jedem einzelnen Thema.
+              </p>
+            </section>
+            
             <section className="chart-overview">
               <div className="chart-container">
                 <ResponsiveContainer width="100%" height={400}>
@@ -589,28 +611,7 @@ function App() {
               </div>
             </section>
 
-            {/* Ranking-Panel */}
-            <section className="ranking-panel">
-              <h3>Am nächsten an deiner Position</h3>
-              <ol className="ranking-list">
-                {similarityRanking.map(({ party, matchPercent }) => (
-                  <li key={party}>
-                    <span
-                      className="ranking-dot"
-                      style={{ backgroundColor: getPartyColor(party) }}
-                    />
-                    {party} – {matchPercent}% Übereinstimmung
-                  </li>
-                ))}
-              </ol>
-              <p className="ranking-note">
-                Berechnung: mittlere absolute Abweichung deiner Antworten zu den
-                Partei-Werten über alle ausgewählten Themen (Skala 1–10), umgerechnet
-                in eine Übereinstimmung in %. 100 % hieße: identische Antworten in
-                jedem einzelnen Thema.
-              </p>
-            </section>
-            
+
             <section className="share-section">
               <button
                 onClick={handleShare}
@@ -626,6 +627,13 @@ function App() {
                   mach einen Screenshot.
                 </p>
               )}
+
+              <p className="share-hint">
+                Tipp für Instagram: Im Teilen-Menü landet das Bild im Chat.
+                Für die Story speichere es stattdessen (Download-Symbol im
+                Teilen-Menü) und lade es in der Instagram-App über "Story
+                hinzufügen" hoch.
+              </p>
             </section>
 
             <p className="disclaimer">
@@ -705,8 +713,8 @@ function App() {
                 <a href="#about">Über uns</a>
                 <a href="#impressum">Impressum</a>
                 <a href="#datenschutz">Datenschutz</a>
-                <span>&copy; 2025 Wahlspinne</span>
               </div>
+              <p className="footer-copyright">&copy; 2025 Wahlspinne</p>
             </div>
           </footer>
         </div>

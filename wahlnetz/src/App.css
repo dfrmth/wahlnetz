@@ -61,6 +61,13 @@ body {
   max-width: 900px;
   margin: 0 auto;
   padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+main {
+  flex: 1;
 }
 
 /* ============================================
@@ -73,7 +80,6 @@ header {
   align-items: center;
   margin-bottom: var(--space-xl);
   padding-bottom: var(--space-md);
-  border-bottom: 2px solid var(--color-gray-medium);
 }
 
 .logo {
@@ -484,6 +490,15 @@ header {
   color: var(--color-red);
   margin-top: var(--space-sm);
   font-weight: 600;
+}
+
+.share-hint {
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-dark);
+  margin-top: var(--space-sm);
+  max-width: 420px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* ============================================
@@ -1138,66 +1153,42 @@ header {
 .app-footer {
   background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
   color: #fff;
-  padding: var(--space-xl) var(--space-lg);
-  margin-top: var(--space-xl);
+  padding: var(--space-lg);
   border-top: 2px solid var(--color-gold);
 }
 
 .footer-content {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: var(--space-xl);
-  margin-bottom: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
   max-width: 1200px;
-  margin-left: auto;
-  margin-right: auto;
+  margin: 0 auto;
+  text-align: center;
 }
 
-.footer-section h4 {
-  margin: 0 0 var(--space-sm) 0;
-  font-size: var(--font-size-lg);
-  font-weight: 700;
-  color: var(--color-gold);
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-lg);
 }
 
-.footer-section p {
-  margin: 0;
-  font-size: var(--font-size-sm);
-  line-height: 1.6;
-  color: #ccc;
-}
-
-.footer-section ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.footer-section li {
-  margin-bottom: var(--space-xs);
-}
-
-.footer-section a {
+.footer-links a {
   color: #fff;
   text-decoration: none;
   font-size: var(--font-size-sm);
   transition: color 0.2s ease;
 }
 
-.footer-section a:hover {
+.footer-links a:hover {
   color: var(--color-gold);
 }
 
-.footer-bottom {
-  text-align: center;
-  padding-top: var(--space-lg);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  font-size: var(--font-size-sm);
-  color: #999;
-}
-
-.footer-bottom p {
+.footer-copyright {
   margin: 0;
+  font-size: var(--font-size-xs);
+  color: #999;
 }
 
 /* ============================================
