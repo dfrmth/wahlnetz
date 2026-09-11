@@ -10,7 +10,7 @@ import {
 } from 'recharts';
 import partyData from './data/parties.json';
 import html2canvas from "html2canvas";
-import logo from './logo.svg';
+import logo from './assets/logo.svg';
 import './App.css';
 
 // Einheitliche Partei-Farben (werden im Chart UND auf der Share-Card verwendet)
@@ -24,6 +24,40 @@ const PARTY_COLORS = {
   BSW: "#792351"
 };
 const getPartyColor = (party) => PARTY_COLORS[party] || "#00C49F";
+
+// TODO: durch die echte, live erreichbare URL ersetzen (Cloudflare-Worker-
+// oder Custom-Domain-Adresse), sobald final geklärt.
+const SITE_URL = "https://wahlspinne.pages.dev";
+
+// Schlichter, moderner Pfeil als Vektor-Icon (kein Icon-Font/-Paket nötig).
+// Zwei eigene Pfad-Varianten statt CSS-Spiegelung, damit Hover-Animationen
+// (transform: translateX) weiterhin frei per CSS steuerbar bleiben.
+const ArrowIcon = ({ direction = 'right', size = 20, className = '' }) => (
+  <svg
+    className={`arrow-icon ${className}`}
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.5"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    {direction === 'left' ? (
+      <>
+        <line x1="20" y1="12" x2="4" y2="12" />
+        <polyline points="10 6 4 12 10 18" />
+      </>
+    ) : (
+      <>
+        <line x1="4" y1="12" x2="20" y2="12" />
+        <polyline points="14 6 20 12 14 18" />
+      </>
+    )}
+  </svg>
+);
 
 // Die Themenfragen, die nacheinander abgefragt werden
 const questions = [
@@ -263,6 +297,48 @@ function App() {
     };
   }, [step, topicFilters, partyFilters, userAnswers]);
 
+  // Misst die tatsächliche Footer-Höhe (der Footer ist position:fixed und
+  // wickelt seine Links je nach Bildschirmbreite unterschiedlich um) und
+  // schreibt sie als CSS-Variable, damit .container immer genug Platz am
+  // unteren Rand frei lässt (behebt: letzte Zeile des Disclaimers wird auf
+  // dem Smartphone vom Footer verdeckt).
+  useEffect(() => {
+    const setFooterHeightVar = () => {
+      const footerEl = document.querySelector('.app-footer');
+      if (footerEl) {
+        document.documentElement.style.setProperty(
+          '--footer-height',
+          `${footerEl.offsetHeight}px`
+        );
+      }
+    };
+    setFooterHeightVar();
+    window.addEventListener('resize', setFooterHeightVar);
+
+    const footerEl = document.querySelector('.app-footer');
+    const resizeObserver = new ResizeObserver(setFooterHeightVar);
+    if (footerEl) resizeObserver.observe(footerEl);
+
+    return () => {
+      window.removeEventListener('resize', setFooterHeightVar);
+      resizeObserver.disconnect();
+    };
+  }, [step]);
+
+  // Kleines Logo, das beim Scrollen auf der Ergebnisseite oben links
+  // eingeblendet bleibt (das große Logo im Header scrollt normal mit).
+  const [isScrolled, setIsScrolled] = useState(false);
+  useEffect(() => {
+    if (step !== 'result') {
+      setIsScrolled(false);
+      return;
+    }
+    const handleScroll = () => setIsScrolled(window.scrollY > 120);
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [step]);
+
   const handleShare = async () => {
     const shareDataBase = {
       title: 'Meine Wahlspinne',
@@ -356,13 +432,14 @@ function App() {
               Klicke auf den Pfeil, um loszulegen.
             </p>
             <button onClick={() => setStep('questions')} className="arrow-button" aria-label="Zum Fragebogen">
-              <span className="arrow-icon">→</span>
+              <ArrowIcon direction="right" size={28} />
             </button>
           </main>
           <footer className="app-footer">
             <div className="footer-content">
               <div className="footer-links">
                 <a href="#methodology">Methodik</a>
+                <a href="#about">Über uns</a>
                 <a href="#impressum">Impressum</a>
                 <a href="#datenschutz">Datenschutz</a>
               </div>
@@ -390,7 +467,16 @@ function App() {
             </button>
           </header>
           <main className={`question-box question-slide-in ${fadeDirection ? `fade-out-${fadeDirection}` : ''}`}>
-            <h2>{currentQ.question}</h2>
+            {(() => {
+              const [heading, ...rest] = currentQ.question.split(':');
+              const scaleText = rest.join(':').trim();
+              return (
+                <>
+                  <h2>{heading}:</h2>
+                  {scaleText && <p className="question-scale">{scaleText}</p>}
+                </>
+              );
+            })()}
             <div className="options">
               {Array.from({ length: 10 }, (_, i) => i + 1).map(num => (
                 <button
@@ -411,7 +497,7 @@ function App() {
                 disabled={currentQuestion === 0}
                 aria-label="Zurück zur vorherigen Frage"
               >
-                <span className="arrow-icon">←</span>
+                <ArrowIcon direction="left" />
               </button>
               <p className="question-counter">Frage {currentQuestion + 1} von {questions.length}</p>
               <button 
@@ -420,9 +506,13 @@ function App() {
                 disabled={userAnswers[currentQuestion] === null}
                 aria-label="Weiter zur nächsten Frage"
               >
-                <span className="arrow-icon">→</span>
+                <ArrowIcon direction="right" />
               </button>
             </div>
+            <p className="deselect-hint">
+              Du kannst einzelne Themen und Parteien später auf der Ergebnisseite
+              über die Filter wieder abwählen.
+            </p>
           </main>
           <footer className="app-footer">
             <div className="footer-content">
@@ -432,7 +522,7 @@ function App() {
                 <a href="#impressum">Impressum</a>
                 <a href="#datenschutz">Datenschutz</a>
               </div>
-              <p className="footer-copyright">&copy; 2025 Wahlspinne</p>
+              <p className="footer-copyright">&copy; 2026 Wahlspinne</p>
             </div>
           </footer>
         </div>
@@ -454,6 +544,17 @@ function App() {
       
       return (
         <div className="container">
+          <button
+            className={`sticky-logo ${isScrolled ? 'visible' : ''}`}
+            onClick={() => {
+              setStep('welcome');
+              setCurrentQuestion(0);
+            }}
+            aria-label="Zur Startseite"
+            tabIndex={isScrolled ? 0 : -1}
+          >
+            <img src={logo} alt="Wahlspinne" />
+          </button>
           <header>
             <button
               className="logo-button"
@@ -472,13 +573,14 @@ function App() {
             <section className="ranking-panel">
               <h3>Am nächsten an deiner Position</h3>
               <ol className="ranking-list">
-                {similarityRanking.map(({ party, matchPercent }) => (
+                {similarityRanking.map(({ party, matchPercent }, index) => (
                   <li key={party}>
-                    <span
-                      className="ranking-dot"
-                      style={{ backgroundColor: getPartyColor(party) }}
-                    />
-                    {party} – {matchPercent}% Übereinstimmung
+                    <span className={`ranking-number rank-${index + 1}`}>
+                      {index + 1}
+                    </span>
+                    <span style={{ color: getPartyColor(party) }}>
+                      {party} – {matchPercent}% Übereinstimmung
+                    </span>
                   </li>
                 ))}
               </ol>
@@ -643,65 +745,74 @@ function App() {
             </p>
 
             {/* Unsichtbar gerenderte Share-Card: eigenes, für Social Media optimiertes
-                Design (1080×1080, quadratisch) statt eines rohen UI-Screenshots.
-                Bleibt im DOM (nicht display:none), damit html2canvas sie erfassen kann. */}
+                Design (1080px breit, Höhe passt sich dem Inhalt an) statt eines
+                rohen UI-Screenshots. Bleibt im DOM (nicht display:none), damit
+                html2canvas sie erfassen kann. isAnimationActive={false} auf beiden
+                Radar-Elementen ist wichtig: ohne das kann html2canvas mitten in der
+                Recharts-Eintritts-Animation (Linien wachsen von der Mitte nach außen)
+                auslösen -> Ergebnis war ein winziges Netz in der Bildmitte. */}
             <div className="share-card-offscreen">
-              <div ref={shareCardRef} className="share-card share-card-white">
-                <div className="share-card-header">
-                  <img src={logo} alt="Logo" className="share-card-logo" />
-                  <div>
-                    <div className="share-card-title">Wahlspinne</div>
-                    <div className="share-card-subtitle">Bundestagswahl 2025</div>
+              <div ref={shareCardRef} className="share-card-frame">
+                <div className="share-card share-card-white">
+                  <div className="share-card-header">
+                    <img src={logo} alt="Logo" className="share-card-logo" />
+                    <div className="share-card-titles">
+                      <span className="share-card-title">Wahlspinne</span>
+                      <span className="share-card-subtitle">Bundestagswahl 2025</span>
+                    </div>
                   </div>
-                </div>
 
-                <RadarChart
-                  cx={540}
-                  cy={430}
-                  outerRadius={280}
-                  width={1080}
-                  height={780}
-                  data={chartData}
-                >
-                  <PolarGrid stroke="#d8d8d8" strokeDasharray="3 3" />
-                  <PolarAngleAxis dataKey="topic" tick={{ fill: '#333', fontSize: 18, fontWeight: 500 }} />
-                  <Radar 
-                    name="Du" 
-                    dataKey="user" 
-                    stroke="#ffb81c" 
-                    fill="#ffb81c" 
-                    fillOpacity={0.5} 
-                    strokeWidth={3}
-                  />
-                  {Object.keys(partyData).map(party =>
-                    partyFilters?.[party] && (
-                      <Radar
-                        key={party}
-                        name={party}
-                        dataKey={party}
-                        stroke={getPartyColor(party)}
-                        fillOpacity={0}
-                        strokeWidth={2}
-                      />
-                    )
-                  )}
-                </RadarChart>
+                  <RadarChart
+                    cx={540}
+                    cy={410}
+                    outerRadius={280}
+                    width={1080}
+                    height={740}
+                    data={chartData}
+                  >
+                    <PolarGrid stroke="#d8d8d8" strokeDasharray="3 3" />
+                    <PolarAngleAxis dataKey="topic" tick={{ fill: '#333', fontSize: 18, fontWeight: 500 }} />
+                    <Radar 
+                      name="Du" 
+                      dataKey="user" 
+                      stroke="#ffb81c" 
+                      fill="#ffb81c" 
+                      fillOpacity={0.5} 
+                      strokeWidth={3}
+                      isAnimationActive={false}
+                    />
+                    {Object.keys(partyData).map(party =>
+                      partyFilters?.[party] && (
+                        <Radar
+                          key={party}
+                          name={party}
+                          dataKey={party}
+                          stroke={getPartyColor(party)}
+                          fillOpacity={0}
+                          strokeWidth={2}
+                          isAnimationActive={false}
+                        />
+                      )
+                    )}
+                  </RadarChart>
 
-                <div className="share-card-legend">
-                  <span className="share-card-legend-item">
-                    <span className="share-card-dot" style={{ backgroundColor: '#FFD166' }} /> Du
-                  </span>
-                  {Object.keys(partyData).map(party =>
-                    partyFilters?.[party] && (
-                      <span className="share-card-legend-item" key={party}>
-                        <span className="share-card-dot" style={{ backgroundColor: getPartyColor(party) }} /> {party}
-                      </span>
-                    )
-                  )}
-                </div>
+                  <div className="share-card-legend">
+                    <span className="share-card-legend-item">
+                      <span className="share-card-dot" style={{ backgroundColor: '#FFD166' }} /> Du
+                    </span>
+                    {Object.keys(partyData).map(party =>
+                      partyFilters?.[party] && (
+                        <span className="share-card-legend-item" key={party}>
+                          <span className="share-card-dot" style={{ backgroundColor: getPartyColor(party) }} /> {party}
+                        </span>
+                      )
+                    )}
+                  </div>
 
-                <div className="share-card-footer">
-                  Parteipositionen KI-gestützt aus den Wahlprogrammen 2025 · Weiter außen = mehr Staat
+                  <div className="share-card-footer">
+                    <div>Parteipositionen KI-gestützt aus den Wahlprogrammen 2025 · Weiter außen = mehr Staat</div>
+                    <div className="share-card-cta">Probier's selbst unter {SITE_URL.replace('https://', '')}</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -711,6 +822,7 @@ function App() {
             <div className="footer-content">
               <div className="footer-links">
                 <a href="#methodology">Methodik</a>
+                <a href="#about">Über uns</a>
                 <a href="#impressum">Impressum</a>
                 <a href="#datenschutz">Datenschutz</a>
               </div>

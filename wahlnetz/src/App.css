@@ -61,15 +61,14 @@ body {
   max-width: 900px;
   margin: 0 auto;
   padding: var(--space-lg);
-  padding-bottom: 4.5rem;
+  padding-bottom: calc(var(--footer-height, 90px) + var(--space-md));
   display: flex;
   flex-direction: column;
   min-height: 100vh;
 }
 
-main {
-  flex: 1;
-}
+/* main wird bewusst NICHT mehr per flex:1 gestreckt – die Karte soll nur so
+   groß sein wie ihr Inhalt, der Rest bis zum (fixen) Footer bleibt leer. */
 
 /* ============================================
    Header & Logo
@@ -79,8 +78,8 @@ header {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: var(--space-xl);
-  padding-bottom: var(--space-md);
+  margin-bottom: var(--space-md);
+  transition: opacity 0.3s ease;
 }
 
 .logo {
@@ -111,6 +110,40 @@ header {
 
 .logo:hover {
   transform: scale(1.05);
+}
+
+.sticky-logo {
+  position: fixed;
+  top: var(--space-sm);
+  left: var(--space-sm);
+  width: 48px;
+  height: 48px;
+  padding: 6px;
+  border: none;
+  border-radius: 50%;
+  background: var(--color-white);
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  transform: translateY(-12px);
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  z-index: 200;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sticky-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.sticky-logo.visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
 }
 
 /* ============================================
@@ -153,7 +186,13 @@ header {
 
 .question-box h2 {
   font-size: var(--font-size-2xl);
-  margin-bottom: var(--space-md);
+  margin-bottom: var(--space-xs);
+}
+
+.question-scale {
+  font-size: var(--font-size-base);
+  color: var(--color-gray-dark);
+  margin: 0 0 var(--space-sm) 0;
 }
 
 /* Start Button */
@@ -289,6 +328,12 @@ header {
   color: var(--color-black);
 }
 
+.deselect-hint {
+  font-size: var(--font-size-xs);
+  color: var(--color-gray-dark);
+  margin: var(--space-md) 0 0 0;
+}
+
 /* ============================================
    Result Page
    ============================================ */
@@ -372,13 +417,24 @@ header {
   transform: translateX(4px);
 }
 
-.ranking-dot {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  display: inline-block;
+.ranking-number {
+  width: 24px;
   flex-shrink: 0;
-  box-shadow: var(--shadow-sm);
+  text-align: center;
+  font-size: var(--font-size-xl);
+  font-weight: 800;
+}
+
+.ranking-number.rank-1 {
+  color: var(--color-black);
+}
+
+.ranking-number.rank-2 {
+  color: var(--color-red);
+}
+
+.ranking-number.rank-3 {
+  color: var(--color-gold);
 }
 
 .ranking-note {
@@ -398,7 +454,7 @@ header {
 .chart-overview {
   display: flex;
   flex-direction: column;
-  gap: var(--space-lg);
+  gap: var(--space-xl);
 }
 
 .chart-container {
@@ -545,16 +601,33 @@ header {
   pointer-events: none;
 }
 
-.share-card {
+/* Äußerer Rahmen: dezenter Schwarz-Rot-Gold-Verlauf bei 50% Deckkraft, nur am
+   Rand sichtbar (14px "Passepartout"). Als eigene Ebene statt background-clip-
+   Trick umgesetzt, weil html2canvas exotischere CSS-Background-Tricks nicht
+   zuverlässig unterstützt. Innen bleibt alles reinweiß, damit die farbigen
+   Partei-Linien im Chart gut unterscheidbar bleiben. */
+.share-card-frame {
   width: 1080px;
-  height: 1080px;
+  padding: 14px;
+  box-sizing: border-box;
+  border-radius: 32px;
+  background: linear-gradient(
+    135deg,
+    rgba(26, 26, 26, 0.5) 0%,
+    rgba(208, 0, 0, 0.5) 50%,
+    rgba(255, 184, 28, 0.5) 100%
+  );
+}
+
+.share-card {
+  width: 100%;
   box-sizing: border-box;
   padding: 60px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
+  background: #ffffff;
+  border-radius: 24px;
   color: #1a1a1a;
   font-family: var(--font-family);
 }
@@ -562,34 +635,42 @@ header {
 .share-card-header {
   display: flex;
   align-items: center;
-  gap: 30px;
+  gap: 20px;
   align-self: flex-start;
   width: 100%;
-  padding-bottom: 40px;
+  padding-bottom: 30px;
   border-bottom: 3px solid var(--color-gold);
+  margin-bottom: 10px;
 }
 
 .share-card-logo {
-  max-width: 100px;
-  max-height: 100px;
+  max-width: 64px;
+  max-height: 64px;
   height: auto;
   width: auto;
   filter: drop-shadow(var(--shadow-sm));
+  flex-shrink: 0;
+}
+
+.share-card-titles {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
 }
 
 .share-card-title {
-  font-size: 56px;
+  font-size: 34px;
   font-weight: 700;
   color: var(--color-black);
   margin: 0;
-  letter-spacing: -1px;
+  letter-spacing: -0.5px;
 }
 
 .share-card-subtitle {
-  font-size: 28px;
+  font-size: 20px;
   color: var(--color-red);
-  opacity: 1;
-  margin: 8px 0 0 0;
+  margin: 0;
   font-weight: 600;
 }
 
@@ -603,6 +684,8 @@ header {
   padding: 20px;
   background: rgba(255, 184, 28, 0.1);
   border-radius: 12px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .share-card-legend-item {
@@ -626,8 +709,14 @@ header {
   color: var(--color-gray-dark);
   text-align: center;
   margin-top: 20px;
-  opacity: 0.8;
   font-weight: 500;
+  line-height: 1.6;
+}
+
+.share-card-cta {
+  margin-top: 4px;
+  font-weight: 700;
+  color: var(--color-black);
 }
 
 /* ============================================
@@ -642,8 +731,7 @@ header {
   }
 
   header {
-    margin-bottom: var(--space-lg);
-    padding-bottom: var(--space-sm);
+    margin-bottom: var(--space-md);
   }
 
   .logo {
@@ -734,25 +822,6 @@ header {
     width: 100%;
     font-size: var(--font-size-base);
   }
-
-  .share-card {
-    width: 900px;
-    height: 900px;
-    padding: 40px;
-  }
-
-  .share-card-title {
-    font-size: 44px;
-  }
-
-  .share-card-subtitle {
-    font-size: 22px;
-  }
-
-  .share-card-legend {
-    font-size: 16px;
-    gap: 16px;
-  }
 }
 
 @media (max-width: 480px) {
@@ -835,26 +904,6 @@ header {
     display: block;
     margin-bottom: 2px;
   }
-
-  .share-card {
-    width: 600px;
-    height: 600px;
-    padding: 30px;
-  }
-
-  .share-card-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 15px;
-  }
-
-  .share-card-title {
-    font-size: 32px;
-  }
-
-  .share-card-subtitle {
-    font-size: 18px;
-  }
 }
 
 /* ============================================
@@ -887,10 +936,8 @@ header {
    ============================================ */
 
 .arrow-icon {
-  display: inline-block;
-  font-size: 1.25em;
-  font-weight: 700;
-  line-height: 1;
+  display: inline-flex;
+  flex-shrink: 0;
   transition: transform 0.25s ease;
 }
 
@@ -900,11 +947,6 @@ header {
 
 .nav-button.nav-next:hover:not(:disabled) .arrow-icon {
   transform: translateX(3px);
-}
-
-.arrow-button .arrow-icon {
-  font-size: 1.8rem;
-  transition: transform 0.25s ease;
 }
 
 .arrow-button:hover .arrow-icon {
@@ -1220,19 +1262,6 @@ header {
 /* ============================================
    Overall Layout
    ============================================ */
-
-body {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
-
-#root {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
-
-.container {
-  flex: 1;
-}
+/* (Sticky-Footer-Flex-Kram nicht mehr nötig – der Footer ist jetzt
+   position:fixed, siehe .app-footer. body/.container weiter oben
+   haben bereits min-height: 100vh.) */
