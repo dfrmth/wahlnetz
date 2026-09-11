@@ -10,7 +10,7 @@ import {
 } from 'recharts';
 import partyData from './data/parties.json';
 import html2canvas from "html2canvas";
-import logo from './assets/logo.svg';
+import logo from './logo.svg';
 import './App.css';
 
 // Einheitliche Partei-Farben (werden im Chart UND auf der Share-Card verwendet)
