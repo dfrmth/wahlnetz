@@ -78,91 +78,186 @@ const questions = [
 ];
 
 // ============================================================================
-// Finanzierbarkeits-Modell (8-Dimensionen-Scoring einer anderen KI)
+// Finanzierbarkeits-Modell v2 (9 Wirkungsdimensionen, Zeit-Gewichtung,
+// gestufte Interaktionen) - komplett ersetzt gegenüber der ersten Version.
 // ============================================================================
-// Jede Frage hat zwei Pole (Antwort 1 und Antwort 10). Für jeden Pol sind hier
-// die 8 Dimensionswerte aus der Vorlage hinterlegt:
-// [F0, F∞, W, A, H, R, G, V]
-//   F0   = heutige öffentliche Finanzlast       (+3 = sehr teuer)
-//   F∞   = langfristige öffentliche Finanzlast  (+3 = sehr teuer)
-//   W    = Wachstum/Produktivität/Steuerbasis   (+3 = stark positiv)
-//   A    = Arbeitsangebot/Erwerbsbeteiligung    (+3 = stark positiv)
-//   H    = private Haushalts-/Unternehmensbel.  (+3 = stark belastend)
-//   R    = Resilienz/strategische Autonomie     (+3 = stark positiv)
-//   G    = gesellschaftlicher Zusammenhalt      (+3 = stark positiv)
-//   V    = Verwaltungs-/Umsetzbarkeit           (+3 = sehr gut umsetzbar)
+// Jede der 14 Fragen hat zwei Pole (Antwort 1 / Antwort 10). Für jeden Pol
+// sind hier die Wirkungswerte hinterlegt. Für "F" (Staatsfinanzen) wird
+// zusätzlich zwischen kurz-/mittelfristig ("F_short") und langfristig
+// ("F_long") unterschieden, weil genau dieser Zeit-Mismatch (heute teuer,
+// später entlastend oder umgekehrt) laut Vorlage ein zentraler Modellfehler
+// wäre, wenn man ihn ignoriert. Bei den übrigen 8 Dimensionen wird EIN
+// zeitlich geglätteter Wert verwendet, weil der Fragebogen keine separaten
+// Kurz-/Mittel-/Langfrist-Antworten erhebt - eine vollständige 3-Zeithorizonte-
+// Tabelle für 9 Dimensionen wäre reine Erfindung ohne Grundlage im
+// Fragebogen. Das ist eine bewusste, kommentierte Vereinfachung.
 //
-// Die Vorlage gibt für einige Zellen Bandbreiten an (z. B. "-1 bis +2"), weil
-// der Nettoeffekt von der Ausgestaltung abhängt. Für ein deterministisches
-// Scoring wird hier jeweils der Mittelwert der Bandbreite verwendet – das ist
-// eine bewusste Vereinfachung.
-const FISCAL_DIMENSION_KEYS = ['F0', 'Finf', 'W', 'A', 'H', 'R', 'G', 'V'];
+//   F_short/F_long = Staatsfinanzen        (+3 = starker Ausgabendruck)
+//   W  = Wirtschaft (Wachstum/Produktivität/Steuerbasis)   (+3 = stark positiv)
+//   A  = Arbeit (Erwerbsbeteiligung/Beschäftigung)          (+3 = stark positiv)
+//   P  = Privatbelastung (Kosten/Risiken bei Bürgern/Firmen)(+3 = stark belastend)
+//   S  = Sozialverträglichkeit (Armut/Absicherung/Ungleichheit) (+3 = sozial positiv)
+//   T  = Zusammenhalt (Vertrauen/Integration/Legitimität)   (+3 = stark positiv)
+//   K  = Kapazität (Überlastung von Verwaltung/Infrastruktur)(+3 = hohes Überlastungsrisiko)
+//   R  = Resilienz (Sicherheit/Krisenfestigkeit/Autonomie)  (+3 = stark positiv)
+//   Z  = Zukunft (Demografie/Humankapital/Klima/Folgekosten)(+3 = stark zukunftsfähig)
+const FISCAL_DIMENSION_KEYS = ['F_short', 'F_long', 'W', 'A', 'P', 'S', 'T', 'K', 'R', 'Z'];
 
+// Grobe relative fiskalische/systemische Gewichtung je Thema (Rente oder
+// Bürgergeld bewegen real viel mehr Geld/Verwaltung als z. B. Sport oder
+// Kultur) - fließt als Gewicht in den gewichteten Durchschnitt über alle
+// 14 Themen ein.
+const FISCAL_TOPIC_WEIGHTS = {
+  "Außenpolitik": 1.0,
+  "Innenpolitik": 0.6,
+  "Migration": 1.0,
+  "Bürgergeld/Armut/Wohnen": 1.5,
+  "Arbeit": 0.9,
+  "Rente": 2.0,
+  "Pflege": 1.6,
+  "Kinder": 1.3,
+  "Bildung": 1.3,
+  "Sport": 0.3,
+  "Kultur": 0.3,
+  "Schuldenbremse/Haushalt": 1.4,
+  "Steuern": 1.5,
+  "Klima-/Energiepolitik": 1.5,
+};
+
+// Reihenfolge je Vektor: [F_short, F_long, W, A, P, S, T, K, R, Z]
 const FISCAL_TOPIC_MODEL = {
   "Außenpolitik": {
-    pole1: [2, 1, 1, 0, 0, 3, 1, 1],      // Abschreckung
-    pole2: [1, -1, 2, 0, 0, 3, 2, 1],     // Soft Power / Diplomatie
+    pole1: [2, 1, 1, 0, 0, 0, 1, -1, 3, 0],       // Abschreckung
+    pole2: [1, -1, 2, 0, 0, 1, 1, -1, 3, 0.5],    // Soft Power / Diplomatie
   },
   "Innenpolitik": {
-    pole1: [2, 1, -1, 0, 1, 1, -1, -1],   // mehr Kontrolle
-    pole2: [-1, 0, 1, 0, -1, 0, 2, 2],    // mehr Freiheit
+    pole1: [2, 1, -1, 0, 1, -0.5, -1, 1, 1, -0.3],  // mehr Kontrolle
+    pole2: [-1, 0, 1, 0, -1, 1, 2, -2, 0, 0.3],     // mehr Freiheit
   },
   "Migration": {
-    pole1: [-1, -1, -1, -1, 0, 1, 0, 1],       // restriktiv
-    pole2: [1, 0.5, 1.5, 2, 1, 1, 1, -1],      // offen
+    pole1: [-1, -1, -1, -1, 0, 0, 0, -1, 1, -0.3],   // restriktiv
+    pole2: [1, 0.5, 1.5, 2, 1, 0.5, 0.5, 1, 1, 0.5], // offen
   },
   "Bürgergeld/Armut/Wohnen": {
-    pole1: [-2, 0.5, 0, -1, 2, 0, -2, 1],  // Eigenverantwortung
-    pole2: [2, -1, 1, 1, -2, 0, 2, 0],     // Sicherheitsnetz
+    pole1: [-2, 0.5, 0, -1, 2, -1.5, -0.5, -1, 0, 0],  // Eigenverantwortung
+    pole2: [2, -1, 1, 1, -2, 1.5, 0.5, 0, 0, 0.2],     // Sicherheitsnetz
   },
   "Arbeit": {
-    pole1: [-1, 0, 3, 2, 1, 1, 0, 1],       // Wirtschaftswachstum/Flexibilität
-    pole2: [1, 0, 1.5, 1, -1, 0, 2, -1],    // bessere Arbeitsbedingungen
+    pole1: [-1, 0, 3, 2, 1, -0.3, 0.3, -1, 1, 0.3],   // Wirtschaftswachstum/Flexibilität
+    pole2: [1, 0, 1.5, 1, -1, 1, 1, 1, 0, 0.2],       // bessere Arbeitsbedingungen
   },
   "Rente": {
-    pole1: [-1, -1, 1, 1, 2, 1, -1, 0],    // stärker privat
-    pole2: [2, 2.5, -1, -1, -2, 0, 1, 1],  // stärker öffentlich
+    pole1: [-1, -1, 1, 1, 2, -1, 0, 0, 1, -0.2],    // stärker privat
+    pole2: [2, 2.5, -1, -1, -2, 1, 0.5, -1, 0, 0],  // stärker öffentlich
   },
   "Pflege": {
-    // Achtung: in unserem Fragebogen ist 1 = Leistung, 10 = Bezahlbarkeit,
-    // also umgekehrt zur Reihenfolge in der Vorlage – hier nach Bedeutung
-    // (nicht nach Zeilenreihenfolge) zugeordnet.
-    pole1: [2, 2, 1, 2, -2, 0, 2, 0],       // Leistung -> "höherer Leistungsumfang"
-    pole2: [-2, -0.5, 0, -1, 3, 0, -1, 1],  // Bezahlbarkeit -> "stärker auf Bezahlbarkeit"
+    // 1 = Leistung, 10 = Bezahlbarkeit (umgekehrt zur Nennreihenfolge in
+    // der Vorlage - hier nach Bedeutung zugeordnet).
+    pole1: [2, 2, 1, 2, -2, 1.5, 0.5, 0, 0, 0.2],       // Leistung
+    pole2: [-2, -0.5, 0, -1, 3, -1.5, 0, -1, 0, 0],     // Bezahlbarkeit
   },
   "Kinder": {
-    pole1: [-1, 0.5, -1, -1, 2, 0, -1, 1], // primär Eltern
-    pole2: [2, -1, 2, 2, -2, 0, 2, 0],     // stärker Staat
+    pole1: [-1, 0.5, -1, -1, 2, -0.5, 0, -1, 0, -0.3],  // primär Eltern
+    pole2: [2, -1, 2, 2, -2, 1.5, 0.5, 0, 0, 0.8],      // stärker Staat
   },
   "Bildung": {
-    pole1: [0, 0, 2, 1, 1, 0, 0, 1],        // Leistung/Selektion
-    pole2: [2, -1, 2.5, 2, -1, 0, 2, -1],   // Förderung/Teilhabe
+    pole1: [0, 0, 2, 1, 1, -0.5, 0, -1, 0, 0.2],        // Leistung/Selektion
+    pole2: [2, -1, 2.5, 2, -1, 1.5, 0.5, 1, 0, 1],      // Förderung/Teilhabe
   },
   "Sport": {
-    pole1: [1, 0, 0, 0, 0, 1, 1, 1],       // Spitzensport
-    pole2: [1, -1, 1, 1, -1, 1, 2, 1],     // Breitensport/Gesundheit
+    pole1: [1, 0, 0, 0, 0, 0, 0.5, -1, 1, 0],       // Spitzensport
+    pole2: [1, -1, 1, 1, -1, 1, 1, -1, 1, 0.3],     // Breitensport/Gesundheit
   },
   "Kultur": {
-    pole1: [-1, 0, 0, 0, 1, 0, -1, 1],      // Mainstream/wenig Förderung
-    pole2: [1, -0.5, 0, 0, -1, 0, 2, -1],   // Förderung/Vielfalt
+    pole1: [-1, 0, 0, 0, 1, -0.3, -0.3, -1, 0, 0],    // Mainstream/wenig Förderung
+    pole2: [1, -0.5, 0, 0, -1, 1, 1, 1, 0, 0.2],      // Förderung/Vielfalt
   },
   "Schuldenbremse/Haushalt": {
-    pole1: [-2, 0, 0, 0, 1, -1, 0, 2],      // Handlungsspielraum -> strikte Ausgabendisziplin
-    pole2: [3, 0, 2, 1, -1, 2, 1, -1],      // Transformation -> kreditfinanzierte Transformation
+    pole1: [-2, 0, 0, 0, 1, 0, 0, -2, -1, 0.5],     // Handlungsspielraum -> strikte Disziplin
+    pole2: [3, 0, 2, 1, -1, 0.5, 0.5, 1, 2, 0.8],   // Transformation -> kreditfinanziert
   },
   "Steuern": {
-    pole1: [-2, 0, 2, 2, -2, 0, 0, 1],   // Wachstum -> niedrigere Belastung
-    // H bei "Umverteilung" ist in der Vorlage "+2 bei Zahlern / -2 bei
-    // Empfängern" - netto nicht eindeutig, hier vereinfachend auf 0 gesetzt.
-    pole2: [2, 0, 0, -1, 0, 0, 2, 0],    // Umverteilung -> höhere Einnahmen
+    pole1: [-2, 0, 2, 2, -2, -0.3, 0, -1, 0, 0.2],   // Wachstum/niedrigere Belastung
+    pole2: [2, 0, 0, -1, 0, 1.5, 1, 0, 0, 0.1],      // Umverteilung/höhere Einnahmen
   },
   "Klima-/Energiepolitik": {
-    // W bei "wenig Intervention" ist laut Vorlage "+1 kurzfristig / -2
-    // langfristig" - hier grob als -0.5 gemittelt (Vereinfachung).
-    pole1: [-2, 2.5, -0.5, 0, -2, -3, -1, 1],  // wenig Intervention
-    pole2: [3, -0.5, 1.5, 1, 1, 3, 1, -1],     // starke Transformation
+    pole1: [-2, 2.5, -0.5, 0, -2, -0.5, -0.5, -1, -3, -1.5],  // wenig Intervention
+    pole2: [3, -0.5, 1.5, 1, 1, 0.5, 0.5, 1, 3, 1.5],         // starke Transformation
   },
 };
+
+// Gestufte Interaktionen: nur Kombinationen, für die aus den 14 Fragen ein
+// plausibler Wirkungsmechanismus ableitbar ist (siehe Vorlage Abschnitt 5).
+// weight = fracA * fracB * interactionStrength - wirkt graduell, kein
+// Schwellenwert. fracX ist die Interpolationsposition Richtung Pol 2, außer
+// wo "1 - fracX" (Richtung Pol 1) vermerkt ist.
+const FISCAL_INTERACTIONS = [
+  {
+    label: "Migration × Arbeit",
+    weight: (t) => t["Migration"] * (1 - t["Arbeit"]),
+    effect: { A: 0.5, W: 0.3, T: 0.2 },
+  },
+  {
+    label: "Migration × Bildung",
+    weight: (t) => t["Migration"] * t["Bildung"],
+    effect: { Z: 0.5, A: 0.3, F_long: -0.3 },
+  },
+  {
+    label: "Migration × Bürgergeld",
+    weight: (t) => t["Migration"] * t["Bürgergeld/Armut/Wohnen"],
+    effect: { F_short: 0.5, F_long: 0.4, K: 0.3 },
+  },
+  {
+    label: "Kinder × Bildung",
+    weight: (t) => t["Kinder"] * t["Bildung"],
+    effect: { Z: 0.5, A: 0.3, F_long: -0.3 },
+  },
+  {
+    label: "Kinder × Arbeit",
+    weight: (t) => t["Kinder"] * t["Arbeit"],
+    effect: { A: 0.5, W: 0.2 },
+  },
+  {
+    label: "Rente × Pflege",
+    weight: (t) => t["Rente"] * (1 - t["Pflege"]),
+    effect: { F_long: 0.6, K: 0.3 },
+  },
+  {
+    label: "Rente × Steuern",
+    weight: (t) => t["Rente"] * (1 - t["Steuern"]),
+    effect: { F_long: 0.7, F_short: 0.2 },
+  },
+  {
+    label: "Pflege × Arbeit",
+    weight: (t) => (1 - t["Pflege"]) * t["Arbeit"],
+    effect: { A: 0.4, W: 0.2 },
+  },
+  {
+    label: "Sport (Prävention)",
+    weight: (t) => t["Sport"],
+    effect: { Z: 0.3, A: 0.2, F_long: -0.2 },
+  },
+  {
+    label: "Arbeit × Steuern",
+    weight: (t) => (1 - t["Arbeit"]) * (1 - t["Steuern"]),
+    effect: { W: 0.5, F_short: 0.2 },
+  },
+  {
+    label: "Haushalt × Klima",
+    weight: (t) => t["Schuldenbremse/Haushalt"] * t["Klima-/Energiepolitik"],
+    effect: { F_short: 0.4, Z: 0.5, F_long: -0.4, W: 0.2 },
+  },
+  {
+    label: "Außenpolitik × Migration",
+    weight: (t) => t["Außenpolitik"] * t["Migration"],
+    effect: { R: 0.3, T: 0.2, Z: 0.2 },
+  },
+  {
+    label: "Innenpolitik × Migration",
+    weight: (t) => (1 - t["Innenpolitik"]) * t["Migration"],
+    effect: { T: -0.4, K: 0.3 },
+  },
+];
 
 function App() {
   // Schritte: 'welcome' → 'questions' → 'result'
@@ -335,18 +430,13 @@ function App() {
       .filter(Boolean);
   };
 
-  // Finanzierbarkeits-Check: übersetzt die 14 Antworten (1-10) über das oben
-  // definierte 8-Dimensionen-Modell in einen Finanzierungsindex (FI) und
-  // einen Tragfähigkeits-Index (GT), inklusive eines Teils der in der
-  // Vorlage beschriebenen Interaktionseffekte.
-  //
-  // Einschränkung: Einige Interaktionseffekte aus der Vorlage beziehen sich
-  // auf Konzepte, die unser Fragebogen gar nicht separat abfragt (z. B.
-  // "hohe Importabhängigkeit bei Rüstung" oder "hohe internationale
-  // Kooperation" als eigene Größe neben Soft Power). Diese wurden
-  // weggelassen. Andere wurden über die naheliegendste vorhandene Frage als
-  // Näherung abgebildet (z. B. "gute Arbeitsmarktintegration" über die
-  // Bildungsfrage) - das ist unten jeweils kommentiert.
+  // Finanzierbarkeits-Check v2: übersetzt die 14 Antworten über das oben
+  // definierte 9-Dimensionen-Modell in vier getrennte Ampeln (Finanzierung,
+  // Gesellschaft, Staatliche Kapazität, Zukunft) plus eine separate
+  // Einschätzung der Belastungsverlagerung auf Private - wie in der Vorlage
+  // beschrieben, OHNE die "guten" Dimensionen (R/T/S) den Finanzierungsdruck
+  // wegrechnen zu lassen: eine teure Politik bleibt finanziell teuer, auch
+  // wenn sie gesellschaftlich wertvoll ist.
   const computeFiscalAnalysis = () => {
     // t[topic] = 0..1, wie stark die Antwort Richtung Pol 2 (Wert 10) geht
     const t = {};
@@ -355,132 +445,117 @@ function App() {
       t[q.topic] = (answer - 1) / 9;
     });
 
-    // Basiswerte: Durchschnitt über alle 14 Themen (linear zwischen den Polen)
-    const totals = { F0: 0, Finf: 0, W: 0, A: 0, H: 0, R: 0, G: 0, V: 0 };
-    let topicCount = 0;
+    // Gewichteter Durchschnitt über alle 14 Themen (linear zwischen den Polen)
+    const totals = {};
+    FISCAL_DIMENSION_KEYS.forEach(key => { totals[key] = 0; });
+    let weightSum = 0;
     Object.keys(FISCAL_TOPIC_MODEL).forEach(topic => {
       const frac = t[topic];
       if (frac === undefined) return;
+      const weight = FISCAL_TOPIC_WEIGHTS[topic] ?? 1;
       const { pole1, pole2 } = FISCAL_TOPIC_MODEL[topic];
       FISCAL_DIMENSION_KEYS.forEach((key, i) => {
-        totals[key] += pole1[i] + frac * (pole2[i] - pole1[i]);
+        totals[key] += weight * (pole1[i] + frac * (pole2[i] - pole1[i]));
       });
-      topicCount += 1;
+      weightSum += weight;
     });
     const dims = {};
     FISCAL_DIMENSION_KEYS.forEach(key => {
-      dims[key] = topicCount > 0 ? totals[key] / topicCount : 0;
+      dims[key] = weightSum > 0 ? totals[key] / weightSum : 0;
     });
 
-    // Interaktionseffekte (Auswahl, siehe Kommentar oben). Jeder Effekt wird
-    // mit einem Gewicht 0..1 skaliert, das ausdrückt, wie stark beide
-    // beteiligten Antworten tatsächlich in die jeweilige Richtung zeigen -
-    // statt eines harten Ja/Nein-Schwellwerts wie in der Vorlage.
-    const addEffect = (weight, effect) => {
+    // Gestufte Interaktionseffekte addieren (siehe FISCAL_INTERACTIONS oben)
+    // und dabei je Interaktion merken, wie stark sie beigetragen hat -
+    // für die spätere "Was treibt das Ergebnis?"-Erklärung.
+    const interactionContributions = [];
+    FISCAL_INTERACTIONS.forEach(({ label, weight, effect }) => {
+      const w = weight(t);
+      if (w <= 0) return;
       Object.keys(effect).forEach(key => {
-        dims[key] += weight * effect[key];
+        dims[key] += w * effect[key];
       });
+      interactionContributions.push({ label, weight: w });
+    });
+
+    // --- Vier Ampeln ---
+    // Finanzierungsdruck: Fiskalkosten (kurz 60% / lang 40%, siehe Kommentar
+    // beim Modell) minus begrenzender Wachstums-/Beschäftigungseffekt.
+    const finanzDruck =
+      0.6 * dims.F_short + 0.4 * dims.F_long - 0.15 * dims.W - 0.1 * dims.A;
+    // Gesellschaft: soziale Belastung (-S) + Vertrauensverlust (-T)
+    // + Privatbelastung (P) + Kapazitätsdruck (K)
+    const gesellschaftDruck =
+      0.3 * -dims.S + 0.3 * -dims.T + 0.2 * dims.P + 0.2 * dims.K;
+    // Staatliche Kapazität: direkt aus K
+    const kapazitaetDruck = dims.K;
+    // Zukunft: invertiertes Z (niedriges Z = ungünstig fürs Modell)
+    const zukunftDruck = -dims.Z;
+    // Belastungsverlagerung: nur der "Privater trägt mehr"-Teil von P
+    const belastungsverlagerung = Math.max(dims.P, 0);
+
+    const levelFromScore = (score) => {
+      if (score > 1.75) return 'red';
+      if (score >= 1.25) return 'orange';
+      if (score >= 0.75) return 'yellow';
+      return 'green';
+    };
+    const shiftLevel = (score) => {
+      if (score > 1.5) return 'hoch';
+      if (score > 0.6) return 'mittel';
+      return 'niedrig';
     };
 
-    // Migration offen + gute Integration (Näherung: Bildung -> Förderung)
-    addEffect(t["Migration"] * t["Bildung"], { W: 1, A: 1, Finf: -1 });
-    // Migration offen + großzügige Transfers + geringe Integration
-    addEffect(
-      t["Migration"] * t["Bürgergeld/Armut/Wohnen"] * (1 - t["Bildung"]),
-      { F0: 1, Finf: 1, A: -1 }
-    );
-    // Starke Kinderpolitik + Bildungsförderung
-    addEffect(t["Kinder"] * t["Bildung"], { W: 1, A: 1, Finf: -1 });
-    // Starke Kinderpolitik + gute Arbeitsbedingungen
-    addEffect(t["Kinder"] * t["Arbeit"], { A: 1, W: 1 });
-    // Breitensport + Prävention/Gesundheitsförderung (kein zweites Thema nötig)
-    addEffect(t["Sport"], { Finf: -1 });
-    // Soft Power + offene Handels-/Wirtschaftspolitik (Näherung: Steuern -> Wachstumspol)
-    addEffect(t["Außenpolitik"] * (1 - t["Steuern"]), { W: 1, R: 1 });
-    // Klimatransformation + kreditfinanzierte Investitionen (Infrastruktur/Netzausbau)
-    addEffect(t["Klima-/Energiepolitik"] * t["Schuldenbremse/Haushalt"], {
-      W: 1,
-      V: 1,
-      Finf: -1,
-    });
-    // Klimatransformation gewollt, aber strikte Ausgabendisziplin (Finanzierungslücke/langsame Umsetzung)
-    addEffect(
-      t["Klima-/Energiepolitik"] * (1 - t["Schuldenbremse/Haushalt"]),
-      { W: -1, H: 1, G: -1 }
-    );
-    // Kreditfinanzierung + breites, dauerhaftes Leistungsversprechen (Rente/Pflege/Kinder)
-    const broadBenefit =
-      (t["Rente"] + (1 - t["Pflege"]) + t["Kinder"]) / 3;
-    addEffect(t["Schuldenbremse/Haushalt"] * broadBenefit, { Finf: 2 });
-    // Niedrige Steuern + gleichzeitig breites Leistungsversprechen
-    addEffect((1 - t["Steuern"]) * broadBenefit, { Finf: 2 });
-    // Sehr hohe Umverteilung + starke Arbeitsanreize (Näherung: Arbeit -> Wachstumspol)
-    addEffect(t["Steuern"] * (1 - t["Arbeit"]), { W: 2 });
+    const ampeln = [
+      { key: 'finanzen', icon: '💶', label: 'Finanzierung', level: levelFromScore(finanzDruck) },
+      { key: 'gesellschaft', icon: '👥', label: 'Gesellschaft', level: levelFromScore(gesellschaftDruck) },
+      { key: 'kapazitaet', icon: '🏛️', label: 'Staatliche Kapazität', level: levelFromScore(kapazitaetDruck) },
+      { key: 'zukunft', icon: '🌱', label: 'Zukunft', level: levelFromScore(zukunftDruck) },
+    ];
+    const shift = { icon: '↔️', label: 'Belastungsverlagerung', value: shiftLevel(belastungsverlagerung) };
 
-    // Finanzierungsindex und gesellschaftlicher Tragfähigkeits-Index
-    const FI = 0.35 * dims.F0 + 0.4 * dims.Finf - 0.15 * dims.W - 0.1 * dims.A;
-    const GT = 0.35 * dims.G + 0.25 * dims.R + 0.2 * dims.V + 0.2 * dims.W;
-
-    // Harte Warnregeln, unabhängig von der FI-Einstufung
-    const langfristigeFalle = dims.Finf >= 2.0;
-    const dauerhafteBelastung = dims.F0 >= 1.5 && dims.Finf >= 1.5;
-    const finanzierungOhneWachstum = FI >= 1.25 && dims.W <= 0 && dims.A <= 0;
-    const privateVerlagerung = FI < 1.25 && dims.H >= 2.0;
-
-    const hardRuleTriggered =
-      langfristigeFalle || dauerhafteBelastung || finanzierungOhneWachstum;
-
-    let level = 'green';
-    if (FI > 1.75) level = 'red';
-    else if (FI >= 1.25) level = 'orange';
-    else if (FI >= 0.75) level = 'yellow';
-    if (hardRuleTriggered) level = 'red';
-
-    const messages = [];
-    if (privateVerlagerung && !hardRuleTriggered) {
-      messages.push({
-        level: 'yellow',
-        icon: '🟡',
-        title: 'Staatlich finanzierbar, private Belastung',
-        text: 'Staatlich finanzierbar, aber mit hoher Belastungsverlagerung auf private Haushalte oder Unternehmen.',
+    // --- "Was treibt das Ergebnis?" ---
+    // Pro Thema den Netto-Beitrag zur Gesamt-"Druck"-Summe (Finanzen +
+    // Gesellschaft + Kapazität - Zukunft) berechnen, um die 2-3 stärksten
+    // Treiber (positiv wie mildernd) zu benennen.
+    const topicDriverScore = (topic) => {
+      const frac = t[topic];
+      if (frac === undefined) return 0;
+      const weight = FISCAL_TOPIC_WEIGHTS[topic] ?? 1;
+      const { pole1, pole2 } = FISCAL_TOPIC_MODEL[topic];
+      const v = {};
+      FISCAL_DIMENSION_KEYS.forEach((key, i) => {
+        v[key] = pole1[i] + frac * (pole2[i] - pole1[i]);
       });
-    } else if (level === 'green') {
-      messages.push({
-        level: 'green',
-        icon: '🟢',
-        title: 'Tragfähig',
-        text: 'Deine Auswahl liegt insgesamt innerhalb eines plausiblen langfristigen Finanzierungskorridors.',
-      });
-    } else if (level === 'red') {
-      messages.push({
-        level: 'red',
-        icon: '🔴',
-        title: 'Zielkonflikt',
-        text: 'Deine Auswahl verbindet hohe dauerhafte Ausgaben mit begrenzten zusätzlichen Einnahmen bzw. Wachstumseffekten. Ohne zusätzliche Einnahmen, andere Einsparungen oder geänderte Prioritäten erscheint die langfristige Finanzierung schwierig.',
-      });
-    } else {
-      messages.push({
-        level,
-        icon: level === 'orange' ? '🟠' : '🟡',
-        title: 'Finanzierungsdruck',
-        text: 'Deine Auswahl erzeugt voraussichtlich einen erhöhten langfristigen Finanzierungsbedarf. Je nach Ausgestaltung wären höhere Einnahmen, Einsparungen an anderer Stelle, zusätzliche Verschuldung oder positive Wachstums-/Beschäftigungseffekte nötig.',
-      });
+      const score =
+        0.6 * v.F_short + 0.4 * v.F_long - 0.15 * v.W - 0.1 * v.A +
+        0.3 * -v.S + 0.3 * -v.T + 0.2 * v.P + 0.2 * v.K -
+        v.Z;
+      return weight * score;
+    };
+    const topicScores = Object.keys(FISCAL_TOPIC_MODEL)
+      .map(topic => ({ topic, score: topicDriverScore(topic) }))
+      .sort((a, b) => b.score - a.score);
+
+    const drivers = [];
+    if (topicScores.length > 0 && topicScores[0].score > 0.3) {
+      drivers.push(
+        `${topicScores[0].topic} erhöht den Druck am stärksten.`
+      );
+    }
+    const strongestInteraction = interactionContributions.sort((a, b) => b.weight - a.weight)[0];
+    if (strongestInteraction && strongestInteraction.weight > 0.25) {
+      drivers.push(
+        `Die Kombination "${strongestInteraction.label}" verstärkt diesen Effekt zusätzlich.`
+      );
+    }
+    const mildest = topicScores[topicScores.length - 1];
+    if (mildest && mildest.score < -0.3) {
+      drivers.push(
+        `${mildest.topic} wirkt dem am ehesten entgegen.`
+      );
     }
 
-    let gtLevel = null;
-    if (GT < -2) gtLevel = 'red';
-    else if (GT < -1.5) gtLevel = 'orange';
-    else if (GT < -0.75) gtLevel = 'yellow';
-    if (gtLevel) {
-      messages.push({
-        level: gtLevel,
-        icon: gtLevel === 'red' ? '🔴' : gtLevel === 'orange' ? '🟠' : '🟡',
-        title: 'Gesellschaftliche Tragfähigkeit',
-        text: 'Deine Auswahl könnte zwar fiskalisch tragfähig sein, verlagert aber einen erheblichen Teil der Belastungen auf private Haushalte, Unternehmen oder bestimmte Gruppen bzw. kann Vertrauen, Zusammenhalt oder staatliche Handlungsfähigkeit beeinträchtigen.',
-      });
-    }
-
-    return { dims, FI, GT, messages };
+    return { ampeln, shift, drivers };
   };
 
   // Erzeugt einen PNG-Blob der (unsichtbar gerenderten) Share-Card.
@@ -950,47 +1025,52 @@ function App() {
               </div>
             </section>
 
-            {/* Finanzierbarkeits-Check: eigener Block, siehe computeFiscalAnalysis */}
+            {/* Finanzierbarkeits-Check v2: eigener Block, siehe computeFiscalAnalysis.
+                Zeigt bewusst nur die kompakte Ampel-Tabelle plus 2-3 konkrete
+                Treiber - keine Rohwerte/Dimensionen mehr im UI (die Vorlage
+                wollte ausdrücklich nur dieses kompakte Element). */}
             <section className="fiscal-panel">
-              <h3>Wie finanzierbar ist deine Auswahl?</h3>
+              <h3>Langfristige Tragfähigkeit deiner Auswahl</h3>
               <p className="fiscal-intro">
                 Nicht alles, was wünschenswert wäre, kann sich der Staat auch
-                leisten. Diese Einschätzung schätzt grob ab, ob deine Antworten
-                eher zu einer soliden, einer angespannten oder einer schwer
-                finanzierbaren Gesamtlage führen würden.
+                leisten. Diese Einschätzung berücksichtigt kurzfristige und
+                langfristige Wirkungen sowie Wechselwirkungen zwischen deinen
+                Antworten.
               </p>
 
-              {fiscalAnalysis.messages.map((msg, i) => (
-                <div key={i} className={`fiscal-message fiscal-${msg.level}`}>
-                  <span className="fiscal-message-icon" aria-hidden="true">{msg.icon}</span>
-                  <div>
-                    <div className="fiscal-message-title">{msg.title}</div>
-                    <p className="fiscal-message-text">{msg.text}</p>
+              <div className="fiscal-ampel-table">
+                {fiscalAnalysis.ampeln.map((a) => (
+                  <div key={a.key} className={`fiscal-ampel-row fiscal-${a.level}`}>
+                    <span className="fiscal-ampel-icon" aria-hidden="true">{a.icon}</span>
+                    <span className="fiscal-ampel-label">{a.label}</span>
+                    <span className={`fiscal-dot fiscal-dot-${a.level}`} aria-hidden="true" />
                   </div>
+                ))}
+                <div className="fiscal-ampel-row fiscal-shift-row">
+                  <span className="fiscal-ampel-icon" aria-hidden="true">{fiscalAnalysis.shift.icon}</span>
+                  <span className="fiscal-ampel-label">{fiscalAnalysis.shift.label}</span>
+                  <span className="fiscal-shift-value">{fiscalAnalysis.shift.value}</span>
                 </div>
-              ))}
+              </div>
 
-              <details className="fiscal-details">
-                <summary>Details zu den 8 Dimensionen anzeigen</summary>
-                <ul className="fiscal-dimension-list">
-                  <li><strong>Heutige Finanzlast (F₀):</strong> {fiscalAnalysis.dims.F0.toFixed(1)}</li>
-                  <li><strong>Langfristige Finanzlast (F∞):</strong> {fiscalAnalysis.dims.Finf.toFixed(1)}</li>
-                  <li><strong>Wachstum/Produktivität (W):</strong> {fiscalAnalysis.dims.W.toFixed(1)}</li>
-                  <li><strong>Arbeitsangebot (A):</strong> {fiscalAnalysis.dims.A.toFixed(1)}</li>
-                  <li><strong>Belastung Privater (H):</strong> {fiscalAnalysis.dims.H.toFixed(1)}</li>
-                  <li><strong>Resilienz/Autonomie (R):</strong> {fiscalAnalysis.dims.R.toFixed(1)}</li>
-                  <li><strong>Gesellschaftlicher Zusammenhalt (G):</strong> {fiscalAnalysis.dims.G.toFixed(1)}</li>
-                  <li><strong>Umsetzbarkeit (V):</strong> {fiscalAnalysis.dims.V.toFixed(1)}</li>
-                </ul>
-                <p className="fiscal-index-line">
-                  Finanzierungsindex: {fiscalAnalysis.FI.toFixed(2)} · Gesellschaftliche Tragfähigkeit: {fiscalAnalysis.GT.toFixed(2)}
-                </p>
-                <p className="fiscal-disclaimer">
-                  Grobes, vereinfachtes Modell (u. a. Mittelwerte statt Bandbreiten,
-                  einige Interaktionseffekte als Näherung) – keine offizielle
-                  Haushalts- oder Steuerschätzung.
-                </p>
-              </details>
+              {fiscalAnalysis.drivers.length > 0 && (
+                <div className="fiscal-drivers">
+                  <h4>Was treibt das Ergebnis?</h4>
+                  <ul>
+                    {fiscalAnalysis.drivers.map((d, i) => (
+                      <li key={i}>{d}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <p className="fiscal-disclaimer">
+                Dies ist keine Haushaltsprognose und keine Vorhersage des
+                politischen Erfolgs. Bewertet wird die innere Tragfähigkeit
+                der gewählten Kombination anhand plausibler Wirkungsrichtungen
+                aus deinen Antworten – die Stärke der Effekte ist relativ,
+                kein Eurobetrag. Kein Haushaltsgutachten.
+              </p>
             </section>
 
             <section className="share-section">
