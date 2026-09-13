@@ -177,8 +177,14 @@ const FISCAL_TOPIC_MODEL = {
     pole2: [3, 0, 2, 1, -1, 0.5, 0.5, 1, 2, 0.8],   // Transformation -> kreditfinanziert
   },
   "Steuern": {
-    pole1: [-2, 0, 2, 2, -2, -0.3, 0, -1, 0, 0.2],   // Wachstum/niedrigere Belastung
-    pole2: [2, 0, 0, -1, 0, 1.5, 1, 0, 0, 0.1],      // Umverteilung/höhere Einnahmen
+    // KORRIGIERT: F_short/F_long spiegeln jetzt die EINNAHMENSEITE direkt
+    // wider (weniger Steuern = weniger Einnahmen = mehr Finanzierungsdruck,
+    // nicht weniger). Der Wachstumsausgleich läuft separat über W in der
+    // Finanzierungsdruck-Formel (-0.15*W) - beides gleichzeitig über F
+    // UND W gegenzurechnen hätte den Wachstumseffekt doppelt gezählt und
+    // im Extremfall sogar das Vorzeichen verkehrt (siehe Testlauf).
+    pole1: [2, 1, 2, 2, -2, -0.3, 0, -1, 0, 0.2],     // Wachstum/niedrigere Belastung
+    pole2: [-2, -1, 0, -1, 0, 1.5, 1, 0, 0, 0.1],     // Umverteilung/höhere Einnahmen
   },
   "Klima-/Energiepolitik": {
     pole1: [-2, 2.5, -0.5, 0, -2, -0.5, -0.5, -1, -3, -1.5],  // wenig Intervention
@@ -429,94 +435,148 @@ function App() {
       })
       .filter(Boolean);
   };
-
-  // Finanzierbarkeits-Check v2: übersetzt die 14 Antworten über das oben
-  // definierte 9-Dimensionen-Modell in vier getrennte Ampeln (Finanzierung,
-  // Gesellschaft, Staatliche Kapazität, Zukunft) plus eine separate
-  // Einschätzung der Belastungsverlagerung auf Private - wie in der Vorlage
-  // beschrieben, OHNE die "guten" Dimensionen (R/T/S) den Finanzierungsdruck
-  // wegrechnen zu lassen: eine teure Politik bleibt finanziell teuer, auch
-  // wenn sie gesellschaftlich wertvoll ist.
+  // Finanzierbarkeits-Check v3: KERNÄNDERUNG gegenüber v2.
+  //
+  // v2 bildete pro Dimension einen gewichteten DURCHSCHNITT über die 14
+  // Themen. Das war der entscheidende Fehler: ein Durchschnitt kann nicht
+  // "explodieren", egal wie viele teure Antworten man gleichzeitig wählt,
+  // weil sich alles zur Mitte hin nivelliert - ein Ergebnis wie
+  // "nicht finanzierbar" war rechnerisch praktisch ausgeschlossen. Reale
+  // Kostenstudien zu Wahlprogrammen (z. B. vor der Bundestagswahl 2025)
+  // SUMMIEREN dagegen die Kosten aller Einzelversprechen und vergleichen die
+  // Summe mit realistisch verfügbarer Gegenfinanzierung - ein Summen-,
+  // kein Mittelwert-Problem.
+  //
+  // v3 summiert deshalb über alle 14 Themen (statt zu mitteln) und setzt das
+  // Ergebnis dann relativ zur theoretisch schlechtestmöglichen Antwort-
+  // Kombination (bei EXAKT diesen 14 Fragen, inkl. Interaktionseffekten):
+  //
+  //   normiert = (tatsächlicher Wert − neutraler Wert)
+  //              / (schlechtestmöglicher Wert − neutraler Wert)
+  //
+  // "Neutral" = alle Antworten in der Mitte (5,5). "Schlechtestmöglich" wird
+  // je Ampel eigens berechnet (für den Finanzierungsdruck z. B. die Kombi aus
+  // allen Antworten, die diesen speziellen Wert maximieren würde). Dadurch
+  // KANN ein Ergebnis nahe 1.0 (= praktisch am schlechtestmöglichen Punkt)
+  // tatsächlich Rot auslösen, wenn jemand konsequent auf teure Optionen
+  // ohne Gegenfinanzierung antwortet - analog zu einem Wahlprogramm, das
+  // durchgehend teure Zusagen ohne Deckungsvorschlag macht. Ein gemischtes,
+  // in sich stimmiges Antwortprofil bleibt dagegen im grünen/gelben Bereich.
+  // Die Grenzwerte (0.35/0.55/0.75) sind eine eigene, im Code dokumentierte
+  // Kalibrierung, keine externe Vorgabe.
   const computeFiscalAnalysis = () => {
-    // t[topic] = 0..1, wie stark die Antwort Richtung Pol 2 (Wert 10) geht
     const t = {};
     questions.forEach((q, index) => {
       const answer = userAnswers[index] ?? 5.5;
       t[q.topic] = (answer - 1) / 9;
     });
 
-    // Gewichteter Durchschnitt über alle 14 Themen (linear zwischen den Polen)
-    const totals = {};
-    FISCAL_DIMENSION_KEYS.forEach(key => { totals[key] = 0; });
-    let weightSum = 0;
-    Object.keys(FISCAL_TOPIC_MODEL).forEach(topic => {
-      const frac = t[topic];
-      if (frac === undefined) return;
-      const weight = FISCAL_TOPIC_WEIGHTS[topic] ?? 1;
-      const { pole1, pole2 } = FISCAL_TOPIC_MODEL[topic];
-      FISCAL_DIMENSION_KEYS.forEach((key, i) => {
-        totals[key] += weight * (pole1[i] + frac * (pole2[i] - pole1[i]));
+    // Liefert den vollen (Basis + Interaktionen) Dimensions-Vektor als SUMME
+    // (nicht Durchschnitt!) für eine beliebige Zuordnung topic -> t (0..1).
+    const computeDimsForT = (tMap) => {
+      const dims = {};
+      FISCAL_DIMENSION_KEYS.forEach(key => { dims[key] = 0; });
+      Object.keys(FISCAL_TOPIC_MODEL).forEach(topic => {
+        const frac = tMap[topic];
+        if (frac === undefined) return;
+        const weight = FISCAL_TOPIC_WEIGHTS[topic] ?? 1;
+        const { pole1, pole2 } = FISCAL_TOPIC_MODEL[topic];
+        FISCAL_DIMENSION_KEYS.forEach((key, i) => {
+          dims[key] += weight * (pole1[i] + frac * (pole2[i] - pole1[i]));
+        });
       });
-      weightSum += weight;
-    });
-    const dims = {};
-    FISCAL_DIMENSION_KEYS.forEach(key => {
-      dims[key] = weightSum > 0 ? totals[key] / weightSum : 0;
-    });
-
-    // Gestufte Interaktionseffekte addieren (siehe FISCAL_INTERACTIONS oben)
-    // und dabei je Interaktion merken, wie stark sie beigetragen hat -
-    // für die spätere "Was treibt das Ergebnis?"-Erklärung.
-    const interactionContributions = [];
-    FISCAL_INTERACTIONS.forEach(({ label, weight, effect }) => {
-      const w = weight(t);
-      if (w <= 0) return;
-      Object.keys(effect).forEach(key => {
-        dims[key] += w * effect[key];
+      const interactionContributions = [];
+      FISCAL_INTERACTIONS.forEach(({ label, weight, effect }) => {
+        const w = weight(tMap);
+        if (w <= 0) return;
+        Object.keys(effect).forEach(key => {
+          dims[key] += w * effect[key];
+        });
+        interactionContributions.push({ label, weight: w });
       });
-      interactionContributions.push({ label, weight: w });
+      return { dims, interactionContributions };
+    };
+
+    const actual = computeDimsForT(t);
+
+    const neutralT = {};
+    Object.keys(FISCAL_TOPIC_MODEL).forEach(topic => { neutralT[topic] = 0.5; });
+    const neutral = computeDimsForT(neutralT).dims;
+
+    // Komposit-Formeln für die vier Ampeln (linear in den Dimensionen).
+    const composites = {
+      finanzen: (d) => 0.6 * d.F_short + 0.4 * d.F_long - 0.15 * d.W - 0.1 * d.A,
+      gesellschaft: (d) => 0.3 * -d.S + 0.3 * -d.T + 0.2 * d.P + 0.2 * d.K,
+      kapazitaet: (d) => d.K,
+      zukunft: (d) => -d.Z,
+      verlagerung: (d) => d.P,
+    };
+
+    // Schlechtestmöglicher Wert je Komposit: weil jede Komposit-Formel linear
+    // in den (pro Thema summierten) Dimensionen ist, lässt sich das Maximum
+    // exakt je Thema einzeln bestimmen (kein globales Optimierungsproblem).
+    // Für Interaktionen wird - als bewusst konservative Näherung, weil eine
+    // exakte gemeinsame Optimierung über 14 korrelierte Variablen den Rahmen
+    // sprengen würde - jede Interaktion unabhängig bei Gewicht=1 betrachtet.
+    const worstCaseFor = (compositeFn) => {
+      let base = 0;
+      Object.keys(FISCAL_TOPIC_MODEL).forEach(topic => {
+        const weight = FISCAL_TOPIC_WEIGHTS[topic] ?? 1;
+        const { pole1, pole2 } = FISCAL_TOPIC_MODEL[topic];
+        const vecToObj = (vec) => {
+          const o = {};
+          FISCAL_DIMENSION_KEYS.forEach((key, i) => { o[key] = vec[i]; });
+          return o;
+        };
+        const score1 = compositeFn(vecToObj(pole1));
+        const score2 = compositeFn(vecToObj(pole2));
+        base += weight * Math.max(score1, score2);
+      });
+      let interactionExtra = 0;
+      FISCAL_INTERACTIONS.forEach(({ effect }) => {
+        const effectObj = {};
+        FISCAL_DIMENSION_KEYS.forEach(key => { effectObj[key] = effect[key] ?? 0; });
+        interactionExtra += Math.max(0, compositeFn(effectObj));
+      });
+      return base + interactionExtra;
+    };
+
+    const ampelLevel = (score, worst, neutralScore) => {
+      const span = worst - neutralScore;
+      const normalized = span !== 0 ? (score - neutralScore) / span : 0;
+      if (normalized > 0.75) return { level: 'red', normalized };
+      if (normalized > 0.55) return { level: 'orange', normalized };
+      if (normalized > 0.35) return { level: 'yellow', normalized };
+      return { level: 'green', normalized };
+    };
+
+    const results = {};
+    Object.keys(composites).forEach(key => {
+      const fn = composites[key];
+      const score = fn(actual.dims);
+      const neutralScore = fn(neutral);
+      const worst = worstCaseFor(fn);
+      results[key] = ampelLevel(score, worst, neutralScore);
     });
-
-    // --- Vier Ampeln ---
-    // Finanzierungsdruck: Fiskalkosten (kurz 60% / lang 40%, siehe Kommentar
-    // beim Modell) minus begrenzender Wachstums-/Beschäftigungseffekt.
-    const finanzDruck =
-      0.6 * dims.F_short + 0.4 * dims.F_long - 0.15 * dims.W - 0.1 * dims.A;
-    // Gesellschaft: soziale Belastung (-S) + Vertrauensverlust (-T)
-    // + Privatbelastung (P) + Kapazitätsdruck (K)
-    const gesellschaftDruck =
-      0.3 * -dims.S + 0.3 * -dims.T + 0.2 * dims.P + 0.2 * dims.K;
-    // Staatliche Kapazität: direkt aus K
-    const kapazitaetDruck = dims.K;
-    // Zukunft: invertiertes Z (niedriges Z = ungünstig fürs Modell)
-    const zukunftDruck = -dims.Z;
-    // Belastungsverlagerung: nur der "Privater trägt mehr"-Teil von P
-    const belastungsverlagerung = Math.max(dims.P, 0);
-
-    const levelFromScore = (score) => {
-      if (score > 1.75) return 'red';
-      if (score >= 1.25) return 'orange';
-      if (score >= 0.75) return 'yellow';
-      return 'green';
-    };
-    const shiftLevel = (score) => {
-      if (score > 1.5) return 'hoch';
-      if (score > 0.6) return 'mittel';
-      return 'niedrig';
-    };
 
     const ampeln = [
-      { key: 'finanzen', icon: '💶', label: 'Finanzierung', level: levelFromScore(finanzDruck) },
-      { key: 'gesellschaft', icon: '👥', label: 'Gesellschaft', level: levelFromScore(gesellschaftDruck) },
-      { key: 'kapazitaet', icon: '🏛️', label: 'Staatliche Kapazität', level: levelFromScore(kapazitaetDruck) },
-      { key: 'zukunft', icon: '🌱', label: 'Zukunft', level: levelFromScore(zukunftDruck) },
+      { key: 'finanzen', icon: '💶', label: 'Finanzierung', level: results.finanzen.level },
+      { key: 'gesellschaft', icon: '👥', label: 'Gesellschaft', level: results.gesellschaft.level },
+      { key: 'kapazitaet', icon: '🏛️', label: 'Staatliche Kapazität', level: results.kapazitaet.level },
+      { key: 'zukunft', icon: '🌱', label: 'Zukunft', level: results.zukunft.level },
     ];
-    const shift = { icon: '↔️', label: 'Belastungsverlagerung', value: shiftLevel(belastungsverlagerung) };
+    const shiftLevelLabel =
+      results.verlagerung.normalized > 0.55 ? 'hoch'
+      : results.verlagerung.normalized > 0.3 ? 'mittel'
+      : 'niedrig';
+    const shift = { icon: '↔️', label: 'Belastungsverlagerung', value: shiftLevelLabel };
 
-    // --- "Was treibt das Ergebnis?" ---
-    // Pro Thema den Netto-Beitrag zur Gesamt-"Druck"-Summe (Finanzen +
-    // Gesellschaft + Kapazität - Zukunft) berechnen, um die 2-3 stärksten
-    // Treiber (positiv wie mildernd) zu benennen.
+    // "Was treibt das Ergebnis?": je Thema der Netto-Beitrag zur Summe aus
+    // Finanzierungs- + Gesellschafts- + Kapazitätsdruck minus Zukunft -
+    // gleiche Logik wie oben, aber pro Thema statt aufsummiert, um die 2-3
+    // stärksten Treiber (und den stärksten Gegenpol) zu benennen.
+    const totalPressure = (d) =>
+      composites.finanzen(d) + composites.gesellschaft(d) + composites.kapazitaet(d) - d.Z;
     const topicDriverScore = (topic) => {
       const frac = t[topic];
       if (frac === undefined) return 0;
@@ -526,33 +586,27 @@ function App() {
       FISCAL_DIMENSION_KEYS.forEach((key, i) => {
         v[key] = pole1[i] + frac * (pole2[i] - pole1[i]);
       });
-      const score =
-        0.6 * v.F_short + 0.4 * v.F_long - 0.15 * v.W - 0.1 * v.A +
-        0.3 * -v.S + 0.3 * -v.T + 0.2 * v.P + 0.2 * v.K -
-        v.Z;
-      return weight * score;
+      return weight * totalPressure(v);
     };
     const topicScores = Object.keys(FISCAL_TOPIC_MODEL)
       .map(topic => ({ topic, score: topicDriverScore(topic) }))
       .sort((a, b) => b.score - a.score);
 
     const drivers = [];
-    if (topicScores.length > 0 && topicScores[0].score > 0.3) {
-      drivers.push(
-        `${topicScores[0].topic} erhöht den Druck am stärksten.`
-      );
+    if (topicScores.length > 0 && topicScores[0].score > 0.5) {
+      drivers.push(`${topicScores[0].topic} erhöht den Druck am stärksten.`);
     }
-    const strongestInteraction = interactionContributions.sort((a, b) => b.weight - a.weight)[0];
-    if (strongestInteraction && strongestInteraction.weight > 0.25) {
+    const strongestInteraction = [...actual.interactionContributions].sort(
+      (a, b) => b.weight - a.weight
+    )[0];
+    if (strongestInteraction && strongestInteraction.weight > 0.3) {
       drivers.push(
         `Die Kombination "${strongestInteraction.label}" verstärkt diesen Effekt zusätzlich.`
       );
     }
     const mildest = topicScores[topicScores.length - 1];
-    if (mildest && mildest.score < -0.3) {
-      drivers.push(
-        `${mildest.topic} wirkt dem am ehesten entgegen.`
-      );
+    if (mildest && mildest.score < -0.5) {
+      drivers.push(`${mildest.topic} wirkt dem am ehesten entgegen.`);
     }
 
     return { ampeln, shift, drivers };
