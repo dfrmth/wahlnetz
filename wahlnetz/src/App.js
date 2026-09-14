@@ -1137,8 +1137,8 @@ function App() {
                 leisten. Diese Einschätzung berücksichtigt kurzfristige und
                 langfristige Wirkungen sowie Wechselwirkungen zwischen deinen
                 Antworten. Finanzierung und Staatliche Kapazität werden bewusst
-                nicht mit den anderen Bereichen verrechnet: Eine Finanzierungs­
-                lücke wird durch gesellschaftlichen Zusammenhalt nicht kleiner.
+                nicht mit den anderen Bereichen verrechnet: Eine Finanzierungslücke
+                wird durch gesellschaftlichen Zusammenhalt nicht kleiner.
               </p>
 
               <div className="fiscal-ampel-table">

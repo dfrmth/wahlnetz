@@ -612,7 +612,7 @@ header {
    Partei-Linien im Chart gut unterscheidbar bleiben. */
 .share-card-frame {
   width: 1080px;
-  padding: 14px;
+  padding: 25px;
   box-sizing: border-box;
   border-radius: 0;
   background: linear-gradient(
