@@ -1150,6 +1150,22 @@ header {
   background: var(--color-gray-light);
 }
 
+.fiscal-ampel-row.fiscal-green {
+  background: rgba(26, 160, 55, 0.1);
+}
+
+.fiscal-ampel-row.fiscal-yellow {
+  background: rgba(255, 184, 28, 0.14);
+}
+
+.fiscal-ampel-row.fiscal-orange {
+  background: rgba(255, 140, 0, 0.14);
+}
+
+.fiscal-ampel-row.fiscal-red {
+  background: rgba(208, 0, 0, 0.1);
+}
+
 .fiscal-ampel-icon {
   font-size: var(--font-size-lg);
   line-height: 1;

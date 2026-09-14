@@ -127,20 +127,27 @@ const FISCAL_TOPIC_WEIGHTS = {
 // Reihenfolge je Vektor: [F_short, F_long, W, A, P, S, T, K, R, Z]
 const FISCAL_TOPIC_MODEL = {
   "Außenpolitik": {
-    pole1: [2, 1, 1, 0, 0, 0, 1, -1, 3, 0],       // Abschreckung
+    // Abschreckung: leicht negatives Z ergaenzt (Eskalations-/Ruestungs-
+    // wettlauf-Risiko als langfristiger Kehrseiten-Effekt starker Abschreckung).
+    pole1: [2, 1, 1, 0, 0, 0, 1, -1, 3, -0.3],    // Abschreckung
     pole2: [1, -1, 2, 0, 0, 1, 1, -1, 3, 0.5],    // Soft Power / Diplomatie
   },
   "Innenpolitik": {
+    // Freiheit: Z leicht angehoben (Demokratiestaerkung/institutionelle
+    // Legitimitaet als langfristig positiver Effekt).
     pole1: [2, 1, -1, 0, 1, -0.5, -1, 1, 1, -0.3],  // mehr Kontrolle
-    pole2: [-1, 0, 1, 0, -1, 1, 2, -2, 0, 0.3],     // mehr Freiheit
+    pole2: [-1, 0, 1, 0, -1, 1, 2, -2, 0, 0.5],     // mehr Freiheit
   },
   "Migration": {
     pole1: [-1, -1, -1, -1, 0, 0, 0, -1, 1, -0.3],   // restriktiv
     pole2: [1, 0.5, 1.5, 2, 1, 0.5, 0.5, 1, 1, 0.5], // offen
   },
   "Bürgergeld/Armut/Wohnen": {
+    // Sicherheitsnetz: T angehoben (ein tragfaehiges soziales Netz senkt
+    // laut politoekonomischer Literatur das Risiko sozialer Unruhen/
+    // Vertrauensverlusts bei hoher Ungleichheit).
     pole1: [-2, 0.5, 0, -1, 2, -1.5, -0.5, -1, 0, 0],  // Eigenverantwortung
-    pole2: [2, -1, 1, 1, -2, 1.5, 0.5, 0, 0, 0.2],     // Sicherheitsnetz
+    pole2: [2, -1, 1, 1, -2, 1.5, 1, 0, 0, 0.2],       // Sicherheitsnetz
   },
   "Arbeit": {
     pole1: [-1, 0, 3, 2, 1, -0.3, 0.3, -1, 1, 0.3],   // Wirtschaftswachstum/Flexibilität
@@ -151,10 +158,14 @@ const FISCAL_TOPIC_MODEL = {
     pole2: [2, 2.5, -1, -1, -2, 1, 0.5, -1, 0, 0],  // stärker öffentlich
   },
   "Pflege": {
-    // 1 = Leistung, 10 = Bezahlbarkeit (umgekehrt zur Nennreihenfolge in
-    // der Vorlage - hier nach Bedeutung zugeordnet).
-    pole1: [2, 2, 1, 2, -2, 1.5, 0.5, 0, 0, 0.2],       // Leistung
-    pole2: [-2, -0.5, 0, -1, 3, -1.5, 0, -1, 0, 0],     // Bezahlbarkeit
+    // KORRIGIERT nach Nutzer-Klarstellung: "Bezahlbarkeit" meint bezahlbare
+    // Eigenanteile für Bürger:innen durch staatliche Bezuschussung - das ist
+    // die für den Staat TEURERE Seite, nicht die günstigere (vorher genau
+    // umgekehrt kodiert). "Leistung" = Fokus auf Versorgungsqualität/-umfang
+    // (Personal, Standards) - kostet ebenfalls, aber über einen anderen
+    // Kanal (Angebot statt direkter Zuschuss) und in geringerem Ausmaß.
+    pole1: [1, 0.5, 0.5, 1, 0.5, 0.5, 0.3, -0.5, 0, 0.3],    // Leistung/Leistungsumfang
+    pole2: [2.5, 1.5, -0.5, -0.5, -2.5, 1.5, 0.5, 0.5, 0, 0], // Bezahlbarkeit (staatl. subventioniert)
   },
   "Kinder": {
     pole1: [-1, 0.5, -1, -1, 2, -0.5, 0, -1, 0, -0.3],  // primär Eltern
@@ -165,8 +176,10 @@ const FISCAL_TOPIC_MODEL = {
     pole2: [2, -1, 2.5, 2, -1, 1.5, 0.5, 1, 0, 1],      // Förderung/Teilhabe
   },
   "Sport": {
+    // Breitensport: Z angehoben (Adipositas-/Krankheitspraevention senkt
+    // langfristige Gesundheits- und Erwerbsausfallkosten).
     pole1: [1, 0, 0, 0, 0, 0, 0.5, -1, 1, 0],       // Spitzensport
-    pole2: [1, -1, 1, 1, -1, 1, 1, -1, 1, 0.3],     // Breitensport/Gesundheit
+    pole2: [1, -1, 1, 1, -1, 1, 1, -1, 1, 0.5],     // Breitensport/Gesundheit
   },
   "Kultur": {
     pole1: [-1, 0, 0, 0, 1, -0.3, -0.3, -1, 0, 0],    // Mainstream/wenig Förderung
@@ -559,11 +572,40 @@ function App() {
       results[key] = ampelLevel(score, worst, neutralScore);
     });
 
+    // --- Warum drei Ampeln statt einer einzigen Kennzahl ---
+    // Eine einzige Kennzahl lässt sich nur über kompensatorische Mittelung
+    // ("gute Werte gleichen schlechte aus") oder über künstliche
+    // Sonderregeln ("Finanzierung schlägt immer durch") erzeugen - beides
+    // wurde hier ausprobiert und beides ist eine Verzerrung der Realität,
+    // keine Vereinfachung von ihr. Fachlich sauberer ist die Unterscheidung
+    // zwischen "schwacher" und "starker" Nachhaltigkeit (OECD-Well-Being-
+    // Rahmen, IMF/EU Debt-Sustainability-Analysen): manche Kapitalarten
+    // (menschlich, sozial, natürlich) sind untereinander tendenziell
+    // austauschbar - gute Bildungspolitik kann fehlende Klimapolitik ein
+    // Stück weit kompensieren. Fiskalische Solvenz und staatliche
+    // Handlungsfähigkeit sind das dagegen NICHT: ein Staat kann eine
+    // Finanzierungslücke nicht mit gesellschaftlichem Zusammenhalt
+    // stopfen, und Verwaltung/Infrastruktur, die überlastet ist, wird
+    // durch eine gute Wirtschaftslage nicht automatisch leistungsfähiger.
+    // Deshalb: "Gesellschaft" und "Zukunft" (menschliches/soziales/
+    // natürliches Kapital) werden zu EINER Ampel gemittelt (kompensatorisch,
+    // dort methodisch vertretbar), "Finanzierung" und "Staatliche Kapazität"
+    // bleiben als jeweils eigene, nicht kompensierbare Ampeln stehen -
+    // macht in Summe genau die gewünschten maximal drei Kategorien.
+    const gesellschaftZukunftNormalized =
+      0.55 * results.gesellschaft.normalized + 0.45 * results.zukunft.normalized;
+    const levelFromNormalized = (n) =>
+      n > 0.75 ? 'red' : n > 0.55 ? 'orange' : n > 0.35 ? 'yellow' : 'green';
+
     const ampeln = [
       { key: 'finanzen', icon: '💶', label: 'Finanzierung', level: results.finanzen.level },
-      { key: 'gesellschaft', icon: '👥', label: 'Gesellschaft', level: results.gesellschaft.level },
+      {
+        key: 'gesellschaftZukunft',
+        icon: '🌍',
+        label: 'Gesellschaft & Zukunft',
+        level: levelFromNormalized(gesellschaftZukunftNormalized),
+      },
       { key: 'kapazitaet', icon: '🏛️', label: 'Staatliche Kapazität', level: results.kapazitaet.level },
-      { key: 'zukunft', icon: '🌱', label: 'Zukunft', level: results.zukunft.level },
     ];
     const shiftLevelLabel =
       results.verlagerung.normalized > 0.55 ? 'hoch'
@@ -583,10 +625,15 @@ function App() {
       const weight = FISCAL_TOPIC_WEIGHTS[topic] ?? 1;
       const { pole1, pole2 } = FISCAL_TOPIC_MODEL[topic];
       const v = {};
+      const vNeutral = {};
       FISCAL_DIMENSION_KEYS.forEach((key, i) => {
         v[key] = pole1[i] + frac * (pole2[i] - pole1[i]);
+        vNeutral[key] = pole1[i] + 0.5 * (pole2[i] - pole1[i]);
       });
-      return weight * totalPressure(v);
+      // Abweichung von der neutralen Mitte (5,5), nicht der Rohwert -
+      // sonst würden Themen mit "teurem" Mittelwert auch bei exakt
+      // neutraler Antwort fälschlich als Treiber erscheinen.
+      return weight * (totalPressure(v) - totalPressure(vNeutral));
     };
     const topicScores = Object.keys(FISCAL_TOPIC_MODEL)
       .map(topic => ({ topic, score: topicDriverScore(topic) }))
@@ -1079,17 +1126,22 @@ function App() {
               </div>
             </section>
 
-            {/* Finanzierbarkeits-Check v2: eigener Block, siehe computeFiscalAnalysis.
-                Zeigt bewusst nur die kompakte Ampel-Tabelle plus 2-3 konkrete
-                Treiber - keine Rohwerte/Dimensionen mehr im UI (die Vorlage
-                wollte ausdrücklich nur dieses kompakte Element). */}
+            {/* Finanzierbarkeits-Check v5: drei eigenständige Ampeln statt einer
+                künstlich verrechneten Gesamtzahl. Finanzierung und Staatliche
+                Kapazität bleiben unverwässert (nicht kompensierbar durch gute
+                Werte anderswo, siehe Kommentar in computeFiscalAnalysis);
+                Gesellschaft und Zukunft sind zu einer Ampel gemittelt, weil
+                menschliches/soziales/natürliches Kapital sich laut OECD-
+                Wohlstandsrahmen tendenziell gegenseitig kompensieren können. */}
             <section className="fiscal-panel">
               <h3>Langfristige Tragfähigkeit deiner Auswahl</h3>
               <p className="fiscal-intro">
                 Nicht alles, was wünschenswert wäre, kann sich der Staat auch
                 leisten. Diese Einschätzung berücksichtigt kurzfristige und
                 langfristige Wirkungen sowie Wechselwirkungen zwischen deinen
-                Antworten.
+                Antworten. Finanzierung und Staatliche Kapazität werden bewusst
+                nicht mit den anderen Bereichen verrechnet: Eine Finanzierungs­
+                lücke wird durch gesellschaftlichen Zusammenhalt nicht kleiner.
               </p>
 
               <div className="fiscal-ampel-table">
