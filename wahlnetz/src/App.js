@@ -61,9 +61,9 @@ const ArrowIcon = ({ direction = 'right', size = 20, className = '' }) => (
 
 // Die Themenfragen, die nacheinander abgefragt werden
 const questions = [
-  { id: 0, topic: "Frieden", question: "Frieden: Abschreckung (1) oder Soft Power (10)", description: "(Entscheidungshilfe: Kosten vs. Abhängigkeiten)" },
-  { id: 1, topic: "Sicherheit", question: "Sicherheit: Kontrolle (1) oder Freiheit (10)", description: "(Entscheidungshilfe: Kriminalitätsbekämpfung vs. Überwachungsstaat)" },
-  { id: 2, topic: "Migration", question: "Migration: restriktiv (1) oder offen (10)", description: "(Entscheidungshilfe: Fachkräftemangel vs. Überforderung)" },
+  { id: 0, topic: "Frieden", question: "Frieden: Soft Power (1) oder Abschreckung (10)", description: "(Entscheidungshilfe: Abhängigkeiten vs. Kosten)" },
+  { id: 1, topic: "Sicherheit", question: "Sicherheit: Freiheit (1) oder Kontrolle (10)", description: "(Entscheidungshilfe: Überwachungsstaat vs. Kriminalitätsbekämpfung)" },
+  { id: 2, topic: "Migration", question: "Migration: offen (1) oder restriktiv (10)", description: "(Entscheidungshilfe: Überforderung vs. Fachkräftemangel)" },
   { id: 3, topic: "Bürgergeld/Wohnen", question: "Bürgergeld/Wohnen: Eigenverantwortung (1) oder Sicherheitsnetz (10)", description: "(Entscheidungshilfe: Ungleichheit vs. Kosten)" },
   { id: 4, topic: "Arbeit", question: "Arbeit: Wirtschaftswachstum (1) oder Arbeitsbedingungen (10)", description: "(Entscheidungshilfe: weniger Unternehmenssteuern vs. weniger Unternehmen)" },
   { id: 5, topic: "Rente", question: "Rente: privat (1) oder öffentlich (10)", description: "(Entscheidungshilfe: Anlagerisiko vs. Kosten)" },
@@ -750,23 +750,36 @@ function App() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [step]);
 
-  // App(4).js – handleShare ersetzen
+  // App(4).js – handleShare komplett ersetzen
 
   const handleShare = async () => {
     try {
-      if (!shareImageBlob) {
+      let blob = shareImageBlob;
+
+      if (!blob) {
+        setShareState('generating');
+        blob = await generateShareImage();
+        if (blob) setShareImageBlob(blob);
+      }
+
+      if (!blob) {
         throw new Error('Bild konnte nicht erzeugt werden.');
       }
 
       const file = new File(
-        [shareImageBlob],
+        [blob],
         'wahlspinne.png',
-        { type: 'image/png' }
+        { type: 'image/png', lastModified: Date.now() }
       );
 
-      if (navigator.share) {
+      if (
+        navigator.share &&
+        navigator.canShare &&
+        navigator.canShare({ files: [file] })
+      ) {
         await navigator.share({
           title: 'Meine Wahlspinne',
+          text: 'Mein politisches Netzdiagramm zur Bundestagswahl 2025 🕸️ #Wahlspinne',
           files: [file]
         });
 
@@ -774,7 +787,17 @@ function App() {
         return;
       }
 
-      const url = URL.createObjectURL(shareImageBlob);
+      if (navigator.share) {
+        await navigator.share({
+          title: 'Meine Wahlspinne',
+          text: 'Mein politisches Netzdiagramm zur Bundestagswahl 2025 🕸️ #Wahlspinne'
+        });
+
+        setShareState('done');
+        return;
+      }
+
+      const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.download = 'wahlspinne.png';
@@ -826,7 +849,6 @@ function App() {
             <div className="footer-content">
               <div className="footer-links">
                 <a href={`${SITE_URL}/methodik`} target="_blank" rel="noopener noreferrer">Methodik</a>
-                <a href={`${SITE_URL}/ueber-uns`} target="_blank" rel="noopener noreferrer">Über uns</a>
                 <a href={`${SITE_URL}/impressum`} target="_blank" rel="noopener noreferrer">Impressum</a>
                 <a href={`${SITE_URL}/datenschutz`} target="_blank" rel="noopener noreferrer">Datenschutz</a>
               </div>
@@ -905,7 +927,6 @@ function App() {
             <div className="footer-content">
               <div className="footer-links">
                 <a href="#methodology">Methodik</a>
-                <a href="#about">Über uns</a>
                 <a href="#impressum">Impressum</a>
                 <a href="#datenschutz">Datenschutz</a>
               </div>
@@ -1262,7 +1283,6 @@ function App() {
             <div className="footer-content">
               <div className="footer-links">
                 <a href="#methodology">Methodik</a>
-                <a href="#about">Über uns</a>
                 <a href="#impressum">Impressum</a>
                 <a href="#datenschutz">Datenschutz</a>
               </div>
