@@ -754,50 +754,65 @@ function App() {
 
   const handleShare = async () => {
     try {
-      let blob = shareImageBlob;
-
-      if (!blob) {
+      if (!shareImageBlob) {
         setShareState('generating');
-        blob = await generateShareImage();
-        if (blob) setShareImageBlob(blob);
-      }
+        const blob = await generateShareImage();
 
-      if (!blob) {
-        throw new Error('Bild konnte nicht erzeugt werden.');
+        if (!blob) {
+          throw new Error('Bild konnte nicht erzeugt werden.');
+        }
+
+        setShareImageBlob(blob);
+
+        const file = new File(
+          [blob],
+          'wahlspinne.png',
+          { type: 'image/png' }
+        );
+
+        if (
+          navigator.share &&
+          (!navigator.canShare || navigator.canShare({ files: [file] }))
+        ) {
+          await navigator.share({
+            title: 'Meine Wahlspinne',
+            files: [file]
+          });
+          setShareState('done');
+          return;
+        }
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'wahlspinne.png';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        setShareState('done');
+        return;
       }
 
       const file = new File(
-        [blob],
+        [shareImageBlob],
         'wahlspinne.png',
-        { type: 'image/png', lastModified: Date.now() }
+        { type: 'image/png' }
       );
 
       if (
         navigator.share &&
-        navigator.canShare &&
-        navigator.canShare({ files: [file] })
+        (!navigator.canShare || navigator.canShare({ files: [file] }))
       ) {
         await navigator.share({
           title: 'Meine Wahlspinne',
-          text: 'Mein politisches Netzdiagramm zur Bundestagswahl 2025 🕸️ #Wahlspinne',
           files: [file]
         });
-
         setShareState('done');
         return;
       }
 
-      if (navigator.share) {
-        await navigator.share({
-          title: 'Meine Wahlspinne',
-          text: 'Mein politisches Netzdiagramm zur Bundestagswahl 2025 🕸️ #Wahlspinne'
-        });
-
-        setShareState('done');
-        return;
-      }
-
-      const url = URL.createObjectURL(blob);
+      const url = URL.createObjectURL(shareImageBlob);
       const link = document.createElement('a');
       link.href = url;
       link.download = 'wahlspinne.png';
@@ -805,7 +820,6 @@ function App() {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-
       setShareState('done');
     } catch (error) {
       if (error?.name === 'AbortError') {
@@ -987,8 +1001,8 @@ function App() {
                     <span className={`ranking-number ${index < 3 ? `rank-${index + 1}` : 'rank-other'}`}>
                       {index + 1}
                     </span>
-                    <span style={{ color: getPartyColor(party) }}>
-                      {party} – {matchPercent}% Übereinstimmung
+                    <span className={index < 3 ? 'ranking-party-top' : 'ranking-party-other'}>
+                      {party} - {matchPercent}% Übereinstimmung
                     </span>
                   </li>
                 ))}
