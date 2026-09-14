@@ -647,17 +647,17 @@ header {
 .share-card-header {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 24px;
   align-self: flex-start;
   width: 100%;
-  padding-bottom: 30px;
-  border-bottom: 3px solid var(--color-gold);
-  margin-bottom: 10px;
+  padding-bottom: 0;
+  border-bottom: none;
+  margin-bottom: 0;
 }
 
 .share-card-logo {
-  max-width: 64px;
-  max-height: 64px;
+  max-width: 90px;
+  max-height: 90px;
   height: auto;
   width: auto;
   filter: drop-shadow(var(--shadow-sm));
@@ -666,24 +666,33 @@ header {
 
 .share-card-titles {
   display: flex;
-  align-items: baseline;
-  gap: 14px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0;
+}
+
+.share-card-title,
+.share-card-subtitle {
+  font-size: 28px;
+  line-height: 1.1;
+  margin: 0;
 }
 
 .share-card-title {
-  font-size: 34px;
   font-weight: 700;
   color: var(--color-black);
-  margin: 0;
   letter-spacing: -0.5px;
 }
 
 .share-card-subtitle {
-  font-size: 20px;
   color: var(--color-red);
-  margin: 0;
   font-weight: 600;
+}
+
+.share-card .recharts-wrapper {
+  position: relative;
+  top: -20px;
 }
 
 .share-card-legend {
@@ -691,12 +700,14 @@ header {
   flex-wrap: wrap;
   gap: 24px;
   justify-content: center;
+  align-items: center;
   font-size: 18px;
-  margin-top: 20px;
-  padding: 20px;
+  margin-top: 0;
+  padding: 20px 24px;
   background: rgba(255, 184, 28, 0.1);
   border-radius: 12px;
-  width: 100%;
+  width: max-content;
+  max-width: 100%;
   box-sizing: border-box;
 }
 
@@ -706,6 +717,7 @@ header {
   gap: 10px;
   color: var(--color-black);
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .share-card-dot {
@@ -834,6 +846,10 @@ header {
     width: 100%;
     font-size: var(--font-size-base);
   }
+
+  .share-card-legend {
+    max-width: calc(100% - 20px);
+  }
 }
 
 @media (max-width: 480px) {
@@ -915,6 +931,10 @@ header {
   .insight-diff-item .label {
     display: block;
     margin-bottom: 2px;
+  }
+
+  .share-card-legend {
+    max-width: calc(100% - 12px);
   }
 }
 
