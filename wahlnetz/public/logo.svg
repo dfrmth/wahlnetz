@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1254" height="1254" viewBox="0 0 1254 1254">
+  <title>Spiderweb radar chart in German flag colors</title>
+  <desc>Transparent background; three gently inward-curved nested web frames in black, red and gold with eight uniform gray spokes aligned to the web corners.</desc>
+
+  <!-- Three gently inward-curved web frames; flat top/bottom orientation -->
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 429.2,149.4 Q 627.0,177.4 824.8,149.4 Q 944.9,309.1 1104.6,429.2 Q 1076.6,627.0 1104.6,824.8 Q 944.9,944.9 824.8,1104.6 Q 627.0,1076.6 429.2,1104.6 Q 309.1,944.9 149.4,824.8 Q 177.4,627.0 149.4,429.2 Q 309.1,309.1 429.2,149.4 Z"
+          stroke="#0D0D0D" stroke-width="28"/>
+    <path d="M 478.1,267.6 Q 627.0,291.6 775.9,267.6 Q 864.2,389.8 986.4,478.1 Q 962.4,627.0 986.4,775.9 Q 864.2,864.2 775.9,986.4 Q 627.0,962.4 478.1,986.4 Q 389.8,864.2 267.6,775.9 Q 291.6,627.0 267.6,478.1 Q 389.8,389.8 478.1,267.6 Z"
+          stroke="#E50914" stroke-width="28"/>
+    <path d="M 523.3,376.6 Q 627.0,394.6 730.7,376.6 Q 791.3,462.7 877.4,523.3 Q 859.4,627.0 877.4,730.7 Q 791.3,791.3 730.7,877.4 Q 627.0,859.4 523.3,877.4 Q 462.7,791.3 376.6,730.7 Q 394.6,627.0 376.6,523.3 Q 462.7,462.7 523.3,376.6 Z"
+          stroke="#F4B400" stroke-width="28"/>
+
+    <!-- Eight equal gray suspension spokes, aligned exactly with the eight outer web corners -->
+    <g stroke="#8A8A8A" stroke-width="18" stroke-linecap="round">
+      <line x1="627" y1="627" x2="845.13" y2="100.39"/>
+      <line x1="627" y1="627" x2="1153.61" y2="408.87"/>
+      <line x1="627" y1="627" x2="1153.61" y2="845.13"/>
+      <line x1="627" y1="627" x2="845.13" y2="1153.61"/>
+      <line x1="627" y1="627" x2="408.87" y2="1153.61"/>
+      <line x1="627" y1="627" x2="100.39" y2="845.13"/>
+      <line x1="627" y1="627" x2="100.39" y2="408.87"/>
+      <line x1="627" y1="627" x2="408.87" y2="100.39"/>
+    </g>
+    <circle cx="627" cy="627" r="9" fill="#8A8A8A" stroke="none"/>
+  </g>
+</svg>

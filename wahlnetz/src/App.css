@@ -437,6 +437,10 @@ header {
   color: var(--color-gold);
 }
 
+.ranking-number.rank-other {
+  color: var(--color-gray-dark);
+}
+
 .ranking-note {
   font-size: var(--font-size-xs);
   color: var(--color-gray-dark);

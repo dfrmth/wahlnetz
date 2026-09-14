@@ -61,10 +61,10 @@ const ArrowIcon = ({ direction = 'right', size = 20, className = '' }) => (
 
 // Die Themenfragen, die nacheinander abgefragt werden
 const questions = [
-  { id: 0, topic: "Außenpolitik", question: "Außenpolitik: Abschreckung (1) oder Soft Power (10)", description: "(Entscheidungshilfe: Kosten vs. Abhängigkeiten)" },
-  { id: 1, topic: "Innenpolitik", question: "Innenpolitik: Kontrolle (1) oder Freiheit (10)", description: "(Entscheidungshilfe: Kriminalitätsbekämpfung vs. Überwachungsstaat)" },
+  { id: 0, topic: "Frieden", question: "Frieden: Abschreckung (1) oder Soft Power (10)", description: "(Entscheidungshilfe: Kosten vs. Abhängigkeiten)" },
+  { id: 1, topic: "Sicherheit", question: "Sicherheit: Kontrolle (1) oder Freiheit (10)", description: "(Entscheidungshilfe: Kriminalitätsbekämpfung vs. Überwachungsstaat)" },
   { id: 2, topic: "Migration", question: "Migration: restriktiv (1) oder offen (10)", description: "(Entscheidungshilfe: Fachkräftemangel vs. Überforderung)" },
-  { id: 3, topic: "Bürgergeld/Armut/Wohnen", question: "Bürgergeld/Armut/Wohnen: Eigenverantwortung (1) oder Sicherheitsnetz (10)", description: "(Entscheidungshilfe: Ungleichheit vs. Kosten)" },
+  { id: 3, topic: "Bürgergeld/Wohnen", question: "Bürgergeld/Wohnen: Eigenverantwortung (1) oder Sicherheitsnetz (10)", description: "(Entscheidungshilfe: Ungleichheit vs. Kosten)" },
   { id: 4, topic: "Arbeit", question: "Arbeit: Wirtschaftswachstum (1) oder Arbeitsbedingungen (10)", description: "(Entscheidungshilfe: weniger Unternehmenssteuern vs. weniger Unternehmen)" },
   { id: 5, topic: "Rente", question: "Rente: privat (1) oder öffentlich (10)", description: "(Entscheidungshilfe: Anlagerisiko vs. Kosten)" },
   { id: 6, topic: "Pflege", question: "Pflege: Leistung (1) oder Bezahlbarkeit (10)", description: "(Entscheidungshilfe: Eigenkosten vs. Staatskosten)" },
@@ -72,9 +72,9 @@ const questions = [
   { id: 8, topic: "Bildung", question: "Bildung: Leistung (1) oder Förderung (10)", description: "(Entscheidungshilfe: Ungleichheit vs. Kosten (aber auch Fachkräftebindung))" },
   { id: 9, topic: "Sport", question: "Sport: Erfolge (1) oder Bürgergesundheit (10)", description: "(Entscheidungshilfe: Nationalstolz vs. Kosten (aber auch Prävention))" },
   { id: 10, topic: "Kultur", question: "Kultur: Mainstream (1) oder Förderung (10)", description: "(Entscheidungshilfe: weniger Vielfalt vs. Kosten)" },
-  { id: 11, topic: "Schuldenbremse/Haushalt", question: "Schuldenbremse/Haushalt: Handlungsspielraum (1) oder Transformation (10)", description: "(Entscheidungshilfe: Investitionsstau vs. Zinslast)" },
+  { id: 11, topic: "Haushalt", question: "Haushalt: Handlungsspielraum (1) oder Transformation (10)", description: "(Entscheidungshilfe: Investitionsstau vs. Zinslast)" },
   { id: 12, topic: "Steuern", question: "Steuern: Wachstum (1) oder Umverteilung (10)", description: "(Entscheidungshilfe: Ungleichheit vs. Steuerflucht)" },
-  { id: 13, topic: "Klima-/Energiepolitik", question: "Klima-/Energiepolitik: wenig (1) oder viel (10)", description: "(Entscheidungshilfe: spätere Anpassungskosten vs. heutige Transformationskosten)" }
+  { id: 13, topic: "Klima/Energie", question: "Klima/Energie: Offenheit (1) oder Klimaschutz (10)", description: "(Entscheidungshilfe: spätere Anpassungskosten vs. heutige Transformationskosten)" }
 ];
 
 // ============================================================================
@@ -108,10 +108,10 @@ const FISCAL_DIMENSION_KEYS = ['F_short', 'F_long', 'W', 'A', 'P', 'S', 'T', 'K'
 // Kultur) - fließt als Gewicht in den gewichteten Durchschnitt über alle
 // 14 Themen ein.
 const FISCAL_TOPIC_WEIGHTS = {
-  "Außenpolitik": 1.0,
-  "Innenpolitik": 0.6,
+  "Frieden": 1.0,
+  "Sicherheit": 0.6,
   "Migration": 1.0,
-  "Bürgergeld/Armut/Wohnen": 1.5,
+  "Bürgergeld/Wohnen": 1.5,
   "Arbeit": 0.9,
   "Rente": 2.0,
   "Pflege": 1.6,
@@ -119,20 +119,20 @@ const FISCAL_TOPIC_WEIGHTS = {
   "Bildung": 1.3,
   "Sport": 0.3,
   "Kultur": 0.3,
-  "Schuldenbremse/Haushalt": 1.4,
+  "Haushalt": 1.4,
   "Steuern": 1.5,
-  "Klima-/Energiepolitik": 1.5,
+  "Klima/Energie": 1.5,
 };
 
 // Reihenfolge je Vektor: [F_short, F_long, W, A, P, S, T, K, R, Z]
 const FISCAL_TOPIC_MODEL = {
-  "Außenpolitik": {
+  "Frieden": {
     // Abschreckung: leicht negatives Z ergaenzt (Eskalations-/Ruestungs-
     // wettlauf-Risiko als langfristiger Kehrseiten-Effekt starker Abschreckung).
     pole1: [2, 1, 1, 0, 0, 0, 1, -1, 3, -0.3],    // Abschreckung
     pole2: [1, -1, 2, 0, 0, 1, 1, -1, 3, 0.5],    // Soft Power / Diplomatie
   },
-  "Innenpolitik": {
+  "Sicherheit": {
     // Freiheit: Z leicht angehoben (Demokratiestaerkung/institutionelle
     // Legitimitaet als langfristig positiver Effekt).
     pole1: [2, 1, -1, 0, 1, -0.5, -1, 1, 1, -0.3],  // mehr Kontrolle
@@ -142,7 +142,7 @@ const FISCAL_TOPIC_MODEL = {
     pole1: [-1, -1, -1, -1, 0, 0, 0, -1, 1, -0.3],   // restriktiv
     pole2: [1, 0.5, 1.5, 2, 1, 0.5, 0.5, 1, 1, 0.5], // offen
   },
-  "Bürgergeld/Armut/Wohnen": {
+  "Bürgergeld/Wohnen": {
     // Sicherheitsnetz: T angehoben (ein tragfaehiges soziales Netz senkt
     // laut politoekonomischer Literatur das Risiko sozialer Unruhen/
     // Vertrauensverlusts bei hoher Ungleichheit).
@@ -185,7 +185,7 @@ const FISCAL_TOPIC_MODEL = {
     pole1: [-1, 0, 0, 0, 1, -0.3, -0.3, -1, 0, 0],    // Mainstream/wenig Förderung
     pole2: [1, -0.5, 0, 0, -1, 1, 1, 1, 0, 0.2],      // Förderung/Vielfalt
   },
-  "Schuldenbremse/Haushalt": {
+  "Haushalt": {
     pole1: [-2, 0, 0, 0, 1, 0, 0, -2, -1, 0.5],     // Handlungsspielraum -> strikte Disziplin
     pole2: [3, 0, 2, 1, -1, 0.5, 0.5, 1, 2, 0.8],   // Transformation -> kreditfinanziert
   },
@@ -199,7 +199,7 @@ const FISCAL_TOPIC_MODEL = {
     pole1: [2, 1, 2, 2, -2, -0.3, 0, -1, 0, 0.2],     // Wachstum/niedrigere Belastung
     pole2: [-2, -1, 0, -1, 0, 1.5, 1, 0, 0, 0.1],     // Umverteilung/höhere Einnahmen
   },
-  "Klima-/Energiepolitik": {
+  "Klima/Energie": {
     pole1: [-2, 2.5, -0.5, 0, -2, -0.5, -0.5, -1, -3, -1.5],  // wenig Intervention
     pole2: [3, -0.5, 1.5, 1, 1, 0.5, 0.5, 1, 3, 1.5],         // starke Transformation
   },
@@ -223,7 +223,7 @@ const FISCAL_INTERACTIONS = [
   },
   {
     label: "Migration × Bürgergeld",
-    weight: (t) => t["Migration"] * t["Bürgergeld/Armut/Wohnen"],
+    weight: (t) => t["Migration"] * t["Bürgergeld/Wohnen"],
     effect: { F_short: 0.5, F_long: 0.4, K: 0.3 },
   },
   {
@@ -263,17 +263,17 @@ const FISCAL_INTERACTIONS = [
   },
   {
     label: "Haushalt × Klima",
-    weight: (t) => t["Schuldenbremse/Haushalt"] * t["Klima-/Energiepolitik"],
+    weight: (t) => t["Schuldenbremse/Haushalt"] * t["Klima/Energie"],
     effect: { F_short: 0.4, Z: 0.5, F_long: -0.4, W: 0.2 },
   },
   {
-    label: "Außenpolitik × Migration",
-    weight: (t) => t["Außenpolitik"] * t["Migration"],
+    label: "Frieden × Migration",
+    weight: (t) => t["Frieden"] * t["Migration"],
     effect: { R: 0.3, T: 0.2, Z: 0.2 },
   },
   {
-    label: "Innenpolitik × Migration",
-    weight: (t) => (1 - t["Innenpolitik"]) * t["Migration"],
+    label: "Sicherheit × Migration",
+    weight: (t) => (1 - t["Sicherheit"]) * t["Migration"],
     effect: { T: -0.4, K: 0.3 },
   },
 ];
@@ -750,65 +750,41 @@ function App() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [step]);
 
+  // App(4).js – handleShare ersetzen
+
   const handleShare = async () => {
-    const shareDataBase = {
-      title: 'Meine Wahlspinne',
-      text: 'Mein politisches Netzdiagramm zur Bundestagswahl 2025 🕸️ #Wahlspinne'
-    };
-
     try {
-      // Wenn das Bild bereits vorbereitet wurde:
-      if (shareImageBlob) {
-        const file = new File(
-          [shareImageBlob],
-          'wahlspinne.png',
-          { type: 'image/png' }
-        );
-
-        // Native Android-/iOS-Share-Auswahl
-        if (
-          navigator.share &&
-          navigator.canShare &&
-          navigator.canShare({ files: [file] })
-        ) {
-          await navigator.share({
-            ...shareDataBase,
-            files: [file]
-          });
-
-          setShareState('done');
-          return;
-        }
+      if (!shareImageBlob) {
+        throw new Error('Bild konnte nicht erzeugt werden.');
       }
 
-      // Fallback: Native Share-Auswahl ohne Bild.
-      // Das ist besser als automatisch herunterzuladen,
-      // wenn der Browser Web Share grundsätzlich unterstützt.
+      const file = new File(
+        [shareImageBlob],
+        'wahlspinne.png',
+        { type: 'image/png' }
+      );
+
       if (navigator.share) {
-        await navigator.share(shareDataBase);
+        await navigator.share({
+          title: 'Meine Wahlspinne',
+          files: [file]
+        });
+
         setShareState('done');
         return;
       }
 
-      // Letzter Fallback für Desktop-Browser ohne Web Share.
-      if (shareImageBlob) {
-        const url = URL.createObjectURL(shareImageBlob);
-        const link = document.createElement('a');
+      const url = URL.createObjectURL(shareImageBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'wahlspinne.png';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
 
-        link.href = url;
-        link.download = 'wahlspinne.png';
-
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        URL.revokeObjectURL(url);
-        setShareState('done');
-      } else {
-        throw new Error('Bild konnte nicht erzeugt werden.');
-      }
+      setShareState('done');
     } catch (error) {
-      // Nutzer hat das native Share-Menü geschlossen
       if (error?.name === 'AbortError') {
         setShareState('idle');
         return;
@@ -849,10 +825,10 @@ function App() {
           <footer className="app-footer">
             <div className="footer-content">
               <div className="footer-links">
-                <a href="#methodology">Methodik</a>
-                <a href="#about">Über uns</a>
-                <a href="#impressum">Impressum</a>
-                <a href="#datenschutz">Datenschutz</a>
+                <a href={`${SITE_URL}/methodik`} target="_blank" rel="noopener noreferrer">Methodik</a>
+                <a href={`${SITE_URL}/ueber-uns`} target="_blank" rel="noopener noreferrer">Über uns</a>
+                <a href={`${SITE_URL}/impressum`} target="_blank" rel="noopener noreferrer">Impressum</a>
+                <a href={`${SITE_URL}/datenschutz`} target="_blank" rel="noopener noreferrer">Datenschutz</a>
               </div>
               <p className="footer-copyright">&copy; 2026 Wahlspinne</p>
             </div>
@@ -987,7 +963,7 @@ function App() {
               <ol className="ranking-list">
                 {similarityRanking.map(({ party, matchPercent }, index) => (
                   <li key={party}>
-                    <span className={`ranking-number rank-${index + 1}`}>
+                    <span className={`ranking-number ${index < 3 ? `rank-${index + 1}` : 'rank-other'}`}>
                       {index + 1}
                     </span>
                     <span style={{ color: getPartyColor(party) }}>
