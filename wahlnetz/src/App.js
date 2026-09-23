@@ -59,6 +59,32 @@ const ArrowIcon = ({ direction = 'right', size = 20, className = '' }) => (
   </svg>
 );
 
+// Custom Tick für PolarAngleAxis: recharts' Standard-Tick positioniert
+// Top-/Bottom-Labels näher am Diagramm als seitliche Labels. Hier stattdessen
+// ein fester radialer Abstand für alle Winkel.
+const makeAngleTick = (fontSize, fill, fontWeight) => (props) => {
+  const { x, y, cx, cy, payload } = props;
+  const angle = Math.atan2(y - cy, x - cx);
+  const offset = fontSize + 8;
+  const tx = x + Math.cos(angle) * offset;
+  const ty = y + Math.sin(angle) * offset;
+  const cos = Math.cos(angle);
+  const textAnchor = cos > 0.15 ? 'start' : cos < -0.15 ? 'end' : 'middle';
+  return (
+    <text
+      x={tx}
+      y={ty}
+      textAnchor={textAnchor}
+      dominantBaseline="central"
+      fontSize={fontSize}
+      fill={fill}
+      fontWeight={fontWeight}
+    >
+      {payload.value}
+    </text>
+  );
+};
+
 // Die Themenfragen, die nacheinander abgefragt werden
 const questions = [
   { id: 0, topic: "Frieden", question: "Frieden: Soft Power (1) oder Abschreckung (10)", description: "(Entscheidungshilfe: Abhängigkeiten vs. Kosten)" },
@@ -775,7 +801,6 @@ function App() {
           (!navigator.canShare || navigator.canShare({ files: [file] }))
         ) {
           await navigator.share({
-            title: 'Meine Wahlspinne',
             files: [file]
           });
           setShareState('done');
@@ -805,7 +830,6 @@ function App() {
         (!navigator.canShare || navigator.canShare({ files: [file] }))
       ) {
         await navigator.share({
-          title: 'Meine Wahlspinne',
           files: [file]
         });
         setShareState('done');
@@ -1092,7 +1116,7 @@ function App() {
                 <ResponsiveContainer width="100%" height={400}>
                   <RadarChart outerRadius="70%" data={chartData}>
                     <PolarGrid stroke="#c8c8c8" strokeDasharray="2 3" strokeWidth={1.5} />
-                    <PolarAngleAxis dataKey="topic" tick={{ fontSize: 12, fill: '#333', fontWeight: 600 }} />
+                    <PolarAngleAxis dataKey="topic" tick={makeAngleTick(12, '#333', 600)} />
                     <Tooltip 
                       contentStyle={{ backgroundColor: '#fff', border: '1px solid #e8e8e8', borderRadius: '8px' }}
                       formatter={(value) => Math.round(value * 10) / 10}
@@ -1246,7 +1270,7 @@ function App() {
                     data={chartData}
                   >
                     <PolarGrid stroke="#d8d8d8" strokeDasharray="3 3" />
-                    <PolarAngleAxis dataKey="topic" tick={{ fill: '#333', fontSize: 18, fontWeight: 500 }} />
+                    <PolarAngleAxis dataKey="topic" tick={makeAngleTick(18, '#333', 500)} />
                     <Radar 
                       name="Du" 
                       dataKey="user" 
