@@ -710,10 +710,12 @@ function App() {
   };
 
   // Share-Bild vorbereiten, sobald die Ergebnisseite geladen ist.
+  const [shareImageReady, setShareImageReady] = useState(false);
   useEffect(() => {
     if (step !== 'result') return;
 
     let cancelled = false;
+    setShareImageReady(false);
 
     const prepareShareImage = async () => {
       // Kurz warten, damit die unsichtbare Share-Card vollständig
@@ -724,6 +726,7 @@ function App() {
 
       if (!cancelled && blob) {
         setShareImageBlob(blob);
+        setShareImageReady(true);
       }
     };
 
@@ -778,82 +781,51 @@ function App() {
 
   // App(4).js – handleShare komplett ersetzen
 
-  const handleShare = async () => {
-    try {
-      if (!shareImageBlob) {
-        setShareState('generating');
-        const blob = await generateShareImage();
-
-        if (!blob) {
-          throw new Error('Bild konnte nicht erzeugt werden.');
-        }
-
-        setShareImageBlob(blob);
-
-        const file = new File(
-          [blob],
-          'wahlspinne.png',
-          { type: 'image/png' }
-        );
-
-        if (
-          navigator.share &&
-          (!navigator.canShare || navigator.canShare({ files: [file] }))
-        ) {
-          await navigator.share({
-            files: [file]
-          });
-          setShareState('done');
-          return;
-        }
-
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'wahlspinne.png';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        setShareState('done');
-        return;
-      }
-
-      const file = new File(
-        [shareImageBlob],
-        'wahlspinne.png',
-        { type: 'image/png' }
-      );
-
-      if (
-        navigator.share &&
-        (!navigator.canShare || navigator.canShare({ files: [file] }))
-      ) {
-        await navigator.share({
-          files: [file]
-        });
-        setShareState('done');
-        return;
-      }
-
-      const url = URL.createObjectURL(shareImageBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = 'wahlspinne.png';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      setShareState('done');
-    } catch (error) {
-      if (error?.name === 'AbortError') {
-        setShareState('idle');
-        return;
-      }
-
-      console.error('Fehler beim Teilen:', error);
+  const handleShare = () => {
+    // Kein await vor navigator.share(): manche mobilen Browser verlangen,
+    // dass der Aufruf synchron innerhalb der Klick-Geste erfolgt, sonst
+    // wird die Aktion nicht als Nutzer-Geste erkannt und es kommt
+    // stattdessen zum Download-Fallback. Deshalb wird hier NICHT mehr
+    // (erneut) das Bild erzeugt - das passiert bereits vorher im
+    // Hintergrund (siehe prepareShareImage-Effekt), der Button ist bis
+    // dahin über shareImageReady deaktiviert.
+    if (!shareImageBlob) {
       setShareState('error');
+      return;
     }
+
+    const file = new File(
+      [shareImageBlob],
+      'wahlspinne.png',
+      { type: 'image/png' }
+    );
+
+    if (
+      navigator.share &&
+      (!navigator.canShare || navigator.canShare({ files: [file] }))
+    ) {
+      navigator.share({ files: [file] })
+        .then(() => setShareState('done'))
+        .catch((error) => {
+          if (error?.name === 'AbortError') {
+            setShareState('idle');
+            return;
+          }
+          console.error('Fehler beim Teilen:', error);
+          setShareState('error');
+        });
+      return;
+    }
+
+    const url = URL.createObjectURL(shareImageBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'wahlspinne.png';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    setShareState('done');
   };
   
 
@@ -1217,10 +1189,10 @@ function App() {
             <section className="share-section">
               <button
                 onClick={handleShare}
-                disabled={shareState === 'generating'}
+                disabled={!shareImageReady}
                 className="share-button"
               >
-                📤 Ergebnis teilen
+                {shareImageReady ? '📤 Ergebnis teilen' : 'Bild wird vorbereitet …'}
               </button>
 
               {shareState === 'error' && (
