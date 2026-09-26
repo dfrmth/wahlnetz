@@ -783,12 +783,9 @@ function App() {
 
   const handleShare = () => {
     // Kein await vor navigator.share(): manche mobilen Browser verlangen,
-    // dass der Aufruf synchron innerhalb der Klick-Geste erfolgt, sonst
-    // wird die Aktion nicht als Nutzer-Geste erkannt und es kommt
-    // stattdessen zum Download-Fallback. Deshalb wird hier NICHT mehr
-    // (erneut) das Bild erzeugt - das passiert bereits vorher im
-    // Hintergrund (siehe prepareShareImage-Effekt), der Button ist bis
-    // dahin über shareImageReady deaktiviert.
+    // dass der Aufruf synchron innerhalb der Klick-Geste erfolgt. Das Bild
+    // wird bereits vorher im Hintergrund erzeugt (prepareShareImage-Effekt),
+    // der Button ist bis dahin über shareImageReady deaktiviert.
     if (!shareImageBlob) {
       setShareState('error');
       return;
@@ -800,10 +797,24 @@ function App() {
       { type: 'image/png' }
     );
 
-    if (
-      navigator.share &&
-      (!navigator.canShare || navigator.canShare({ files: [file] }))
-    ) {
+    const downloadFallback = () => {
+      const url = URL.createObjectURL(shareImageBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'wahlspinne.png';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      setShareState('done');
+    };
+
+    // navigator.canShare() als Vorab-Gate entfernt: laut Spec kann
+    // canShare() "false positive"/uneinheitliche Ergebnisse liefern
+    // (siehe W3C-Spec-Hinweis). Stattdessen wird navigator.share()
+    // direkt versucht und nur bei echtem Fehlschlag auf den Download
+    // zurückgefallen - das ist die robustere Reihenfolge.
+    if (navigator.share) {
       navigator.share({ files: [file] })
         .then(() => setShareState('done'))
         .catch((error) => {
@@ -811,21 +822,13 @@ function App() {
             setShareState('idle');
             return;
           }
-          console.error('Fehler beim Teilen:', error);
-          setShareState('error');
+          console.error('Fehler beim Teilen (falle auf Download zurück):', error);
+          downloadFallback();
         });
       return;
     }
 
-    const url = URL.createObjectURL(shareImageBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'wahlspinne.png';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    setShareState('done');
+    downloadFallback();
   };
   
 
