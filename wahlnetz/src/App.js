@@ -92,22 +92,23 @@ const questions = [
   { id: 2, topic: "Migration", question: "Migration: offen (1) oder restriktiv (10)", description: "(Entscheidungshilfe: Überforderung vs. Fachkräftemangel)" },
   { id: 3, topic: "Bürgergeld/Wohnen", question: "Bürgergeld/Wohnen: Eigenverantwortung (1) oder Sicherheitsnetz (10)", description: "(Entscheidungshilfe: Ungleichheit vs. Kosten)" },
   { id: 4, topic: "Arbeit", question: "Arbeit: Wirtschaftswachstum (1) oder Arbeitsbedingungen (10)", description: "(Entscheidungshilfe: weniger Unternehmenssteuern vs. weniger Unternehmen)" },
-  { id: 5, topic: "Rente", question: "Rente: privat (1) oder öffentlich (10)", description: "(Entscheidungshilfe: Anlagerisiko vs. Kosten)" },
-  { id: 6, topic: "Pflege", question: "Pflege: Leistung (1) oder Bezahlbarkeit (10)", description: "(Entscheidungshilfe: Eigenkosten vs. Staatskosten)" },
-  { id: 7, topic: "Kinder", question: "Kinder: Verantwortung bei Eltern (1) oder Staat (10)", description: "(Entscheidungshilfe: Ungleichheit vs. Kosten)" },
-  { id: 8, topic: "Bildung", question: "Bildung: Leistung (1) oder Förderung (10)", description: "(Entscheidungshilfe: Ungleichheit vs. Kosten (aber auch Fachkräftebindung))" },
-  { id: 9, topic: "Sport", question: "Sport: Erfolge (1) oder Bürgergesundheit (10)", description: "(Entscheidungshilfe: Nationalstolz vs. Kosten (aber auch Prävention))" },
-  { id: 10, topic: "Kultur", question: "Kultur: Mainstream (1) oder Förderung (10)", description: "(Entscheidungshilfe: weniger Vielfalt vs. Kosten)" },
-  { id: 11, topic: "Haushalt", question: "Haushalt: Handlungsspielraum (1) oder Transformation (10)", description: "(Entscheidungshilfe: Investitionsstau vs. Zinslast)" },
-  { id: 12, topic: "Steuern", question: "Steuern: Wachstum (1) oder Umverteilung (10)", description: "(Entscheidungshilfe: Ungleichheit vs. Steuerflucht)" },
-  { id: 13, topic: "Klima/Energie", question: "Klima/Energie: Offenheit (1) oder Klimaschutz (10)", description: "(Entscheidungshilfe: spätere Anpassungskosten vs. heutige Transformationskosten)" }
+  { id: 5, topic: "Rente & Pflege", fiscalTopics: ["Rente", "Pflege"], question: "Rente & Pflege: privat und individuelle Verantwortung (1) oder öffentliche Absicherung (10)", description: "(Entscheidungshilfe: Anlagerisiko und Eigenkosten vs. staatliche Kosten)" },
+  { id: 6, topic: "Kinder & Bildung", fiscalTopics: ["Kinder", "Bildung"], question: "Kinder & Bildung: Verantwortung bei Eltern und Leistung (1) oder staatliche Förderung (10)", description: "(Entscheidungshilfe: Eigenverantwortung und Auswahl vs. Teilhabe und Förderung)" },
+  { id: 7, topic: "Sport & Kultur", fiscalTopics: ["Sport", "Kultur"], question: "Sport & Kultur: Erfolge und Mainstream (1) oder Bürgergesundheit und Förderung (10)", description: "(Entscheidungshilfe: weniger Vielfalt und Prävention vs. öffentliche Kosten)" },
+  { id: 8, topic: "Haushalt & Klima/Energie", fiscalTopics: ["Haushalt", "Klima/Energie"], question: "Haushalt & Klima: Handlungsspielraum und Offenheit (1) oder Transformation und Klimaschutz (10)", description: "(Entscheidungshilfe: Investitionsstau und spätere Anpassungskosten vs. heutige Transformationskosten)" },
+  { id: 9, topic: "Steuern", question: "Steuern: Wachstum (1) oder Umverteilung (10)", description: "(Entscheidungshilfe: Ungleichheit vs. Steuerflucht)" }
 ];
+
+const getInfoPageFromHash = () => {
+  const page = window.location.hash.slice(1).toLowerCase();
+  return ['methodik', 'impressum', 'datenschutz'].includes(page) ? page : null;
+};
 
 // ============================================================================
 // Finanzierbarkeits-Modell v2 (9 Wirkungsdimensionen, Zeit-Gewichtung,
 // gestufte Interaktionen) - komplett ersetzt gegenüber der ersten Version.
 // ============================================================================
-// Jede der 14 Fragen hat zwei Pole (Antwort 1 / Antwort 10). Für jeden Pol
+// Jedes der 14 Einzelmodelle hat zwei Pole (Antwort 1 / Antwort 10). Für jeden Pol
 // sind hier die Wirkungswerte hinterlegt. Für "F" (Staatsfinanzen) wird
 // zusätzlich zwischen kurz-/mittelfristig ("F_short") und langfristig
 // ("F_long") unterschieden, weil genau dieser Zeit-Mismatch (heute teuer,
@@ -132,7 +133,7 @@ const FISCAL_DIMENSION_KEYS = ['F_short', 'F_long', 'W', 'A', 'P', 'S', 'T', 'K'
 // Grobe relative fiskalische/systemische Gewichtung je Thema (Rente oder
 // Bürgergeld bewegen real viel mehr Geld/Verwaltung als z. B. Sport oder
 // Kultur) - fließt als Gewicht in den gewichteten Durchschnitt über alle
-// 14 Themen ein.
+// Themenmodelle ein.
 const FISCAL_TOPIC_WEIGHTS = {
   "Frieden": 1.0,
   "Sicherheit": 0.6,
@@ -231,7 +232,7 @@ const FISCAL_TOPIC_MODEL = {
   },
 };
 
-// Gestufte Interaktionen: nur Kombinationen, für die aus den 14 Fragen ein
+// Gestufte Interaktionen: nur Kombinationen, für die aus den 10 Fragen ein
 // plausibler Wirkungsmechanismus ableitbar ist (siehe Vorlage Abschnitt 5).
 // weight = fracA * fracB * interactionStrength - wirkt graduell, kein
 // Schwellenwert. fracX ist die Interpolationsposition Richtung Pol 2, außer
@@ -289,7 +290,7 @@ const FISCAL_INTERACTIONS = [
   },
   {
     label: "Haushalt × Klima",
-    weight: (t) => t["Schuldenbremse/Haushalt"] * t["Klima/Energie"],
+    weight: (t) => t["Haushalt"] * t["Klima/Energie"],
     effect: { F_short: 0.4, Z: 0.5, F_long: -0.4, W: 0.2 },
   },
   {
@@ -307,6 +308,7 @@ const FISCAL_INTERACTIONS = [
 function App() {
   // Schritte: 'welcome' → 'questions' → 'result'
   const [step, setStep] = useState('welcome');
+  const [infoPage, setInfoPage] = useState(getInfoPageFromHash);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [userAnswers, setUserAnswers] = useState(Array(questions.length).fill(null));
   const [fadeDirection, setFadeDirection] = useState(null); // 'left' oder 'right' für Fade-Out
@@ -326,6 +328,12 @@ function App() {
     });
     return filters;
   });
+
+  useEffect(() => {
+    const handleHashChange = () => setInfoPage(getInfoPageFromHash());
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
   
   // Filter-Menu Toggle
   const [showFilterMenu, setShowFilterMenu] = useState(false);
@@ -486,9 +494,9 @@ function App() {
   // Summe mit realistisch verfügbarer Gegenfinanzierung - ein Summen-,
   // kein Mittelwert-Problem.
   //
-  // v3 summiert deshalb über alle 14 Themen (statt zu mitteln) und setzt das
+  // v3 summiert deshalb über alle Themenmodelle (statt zu mitteln) und setzt das
   // Ergebnis dann relativ zur theoretisch schlechtestmöglichen Antwort-
-  // Kombination (bei EXAKT diesen 14 Fragen, inkl. Interaktionseffekten):
+  // Kombination (bei EXAKT diesen 10 Fragen, inkl. Interaktionseffekten):
   //
   //   normiert = (tatsächlicher Wert − neutraler Wert)
   //              / (schlechtestmöglicher Wert − neutraler Wert)
@@ -507,7 +515,9 @@ function App() {
     const t = {};
     questions.forEach((q, index) => {
       const answer = userAnswers[index] ?? 5.5;
-      t[q.topic] = (answer - 1) / 9;
+      (q.fiscalTopics || [q.topic]).forEach(topic => {
+        t[topic] = (answer - 1) / 9;
+      });
     });
 
     // Liefert den vollen (Basis + Interaktionen) Dimensions-Vektor als SUMME
@@ -832,6 +842,41 @@ function App() {
   };
   
 
+    if (infoPage) {
+      const pageTitles = {
+        methodik: 'Methodik',
+        impressum: 'Impressum',
+        datenschutz: 'Datenschutz',
+      };
+
+      return (
+        <div className="container info-page-container">
+          <header>
+            <a className="logo-button" href="#" aria-label="Zur Wahlspinne">
+              <img src={logo} alt="Wahlspinne" className="logo" />
+            </a>
+          </header>
+          <main className="info-page">
+            <h1>{pageTitles[infoPage]}</h1>
+            <div className="info-page-content" aria-label={`Inhalt: ${pageTitles[infoPage]}`}>
+              <p>Inhalt folgt.</p>
+            </div>
+            <a className="info-page-back" href="#">Zurück zur Wahlspinne</a>
+          </main>
+          <footer className="app-footer">
+            <div className="footer-content">
+              <nav className="footer-links" aria-label="Rechtliche Informationen">
+                <a href="#methodik">Methodik</a>
+                <a href="#impressum">Impressum</a>
+                <a href="#datenschutz">Datenschutz</a>
+              </nav>
+              <p className="footer-copyright">&copy; 2026 Wahlspinne</p>
+            </div>
+          </footer>
+        </div>
+      );
+    }
+
     // Rendern der verschiedenen Phasen
     if (step === 'welcome') {
       return (
@@ -861,9 +906,9 @@ function App() {
           <footer className="app-footer">
             <div className="footer-content">
               <div className="footer-links">
-                <a href={`${SITE_URL}/methodik`} target="_blank" rel="noopener noreferrer">Methodik</a>
-                <a href={`${SITE_URL}/impressum`} target="_blank" rel="noopener noreferrer">Impressum</a>
-                <a href={`${SITE_URL}/datenschutz`} target="_blank" rel="noopener noreferrer">Datenschutz</a>
+                <a href="#methodik">Methodik</a>
+                <a href="#impressum">Impressum</a>
+                <a href="#datenschutz">Datenschutz</a>
               </div>
               <p className="footer-copyright">&copy; 2026 Wahlspinne</p>
             </div>
@@ -944,7 +989,7 @@ function App() {
           <footer className="app-footer">
             <div className="footer-content">
               <div className="footer-links">
-                <a href="#methodology">Methodik</a>
+                <a href="#methodik">Methodik</a>
                 <a href="#impressum">Impressum</a>
                 <a href="#datenschutz">Datenschutz</a>
               </div>
@@ -1300,7 +1345,7 @@ function App() {
           <footer className="app-footer">
             <div className="footer-content">
               <div className="footer-links">
-                <a href="#methodology">Methodik</a>
+                <a href="#methodik">Methodik</a>
                 <a href="#impressum">Impressum</a>
                 <a href="#datenschutz">Datenschutz</a>
               </div>

@@ -162,6 +162,35 @@ header {
   backdrop-filter: blur(10px);
 }
 
+.info-page {
+  flex: 1;
+  min-height: 320px;
+  padding: var(--space-xl);
+  border-radius: 16px;
+  background: var(--color-white);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+}
+
+.info-page h1 {
+  margin: 0 0 var(--space-md);
+  font-size: var(--font-size-2xl);
+}
+
+.info-page-content {
+  flex: 1;
+  color: var(--color-gray-dark);
+}
+
+.info-page-back {
+  align-self: flex-start;
+  color: var(--color-black);
+  font-weight: 600;
+  text-decoration-color: var(--color-red);
+  text-underline-offset: 4px;
+}
+
 .welcome-box:hover,
 .question-box:hover {
   box-shadow: var(--shadow-lg);
@@ -886,7 +915,8 @@ header {
   }
 
   .welcome-box,
-  .question-box {
+  .question-box,
+  .info-page {
     padding: var(--space-md);
     border-radius: 20px;
   }
