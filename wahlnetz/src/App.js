@@ -921,7 +921,12 @@ function App() {
               >
                 <ArrowIcon direction="left" />
               </button>
-              <p className="question-counter">Frage {currentQuestion + 1} von {questions.length}</p>
+              <progress
+                className="question-progress"
+                value={currentQuestion + 1}
+                max={questions.length}
+                aria-label={`Fortschritt: Frage ${currentQuestion + 1} von ${questions.length}`}
+              />
               <button 
                 onClick={handleNextQuestion} 
                 className="nav-button nav-next"

@@ -319,13 +319,32 @@ header {
   border-color: var(--color-gray-medium);
 }
 
-.question-counter {
-  margin: 0;
-  font-weight: 700;
-  min-width: 140px;
-  text-align: center;
-  font-size: var(--font-size-lg);
-  color: var(--color-black);
+.question-progress {
+  width: 140px;
+  height: 12px;
+  border: 0;
+  border-radius: 999px;
+  overflow: hidden;
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--color-gray-medium);
+}
+
+.question-progress::-webkit-progress-bar {
+  border-radius: 999px;
+  background: var(--color-gray-medium);
+}
+
+.question-progress::-webkit-progress-value {
+  border-radius: 999px;
+  background: var(--color-red);
+  transition: width 0.25s ease;
+}
+
+.question-progress::-moz-progress-bar {
+  border-radius: 999px;
+  background: var(--color-red);
+  transition: width 0.25s ease;
 }
 
 .deselect-hint {
@@ -752,6 +771,7 @@ header {
     width: 100%;
     max-width: 100%;
     padding: var(--space-md);
+    padding-bottom: var(--space-md);
   }
 
   header {
@@ -798,9 +818,8 @@ header {
     padding: 0.75rem 1rem;
   }
 
-  .question-counter {
-    min-width: 110px;
-    font-size: var(--font-size-base);
+  .question-progress {
+    width: 110px;
   }
 
   .chart-container {
@@ -893,16 +912,19 @@ header {
   }
 
   .question-navigation {
-    flex-direction: column;
+    flex-direction: row;
     gap: var(--space-sm);
   }
 
   .nav-button {
-    width: 100%;
+    width: 44px;
+    height: 44px;
+    padding: 0;
   }
 
-  .question-counter {
-    width: 100%;
+  .question-progress {
+    flex: 1;
+    width: auto;
     min-width: 0;
   }
 
@@ -1238,6 +1260,12 @@ header {
 .fiscal-shift-row {
   border: 1px dashed var(--color-gray-medium);
   background: transparent;
+  flex-wrap: wrap;
+}
+
+.fiscal-shift-row .fiscal-ampel-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .fiscal-shift-value {
@@ -1419,6 +1447,13 @@ header {
   margin: 0;
   font-size: var(--font-size-xs);
   color: #999;
+}
+
+@media (max-width: 768px) {
+  .app-footer {
+    position: static;
+    margin-top: auto;
+  }
 }
 
 /* ============================================
