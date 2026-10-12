@@ -842,6 +842,12 @@ function App() {
   };
   
 
+    const returnToApp = (event) => {
+      event.preventDefault();
+      window.history.replaceState({}, '', window.location.pathname + window.location.search);
+      setInfoPage(null);
+    };
+
     if (infoPage) {
       const pageTitles = {
         methodik: 'Methodik',
@@ -852,7 +858,7 @@ function App() {
       return (
         <div className="container info-page-container">
           <header>
-            <a className="logo-button" href="#" aria-label="Zur Wahlspinne">
+            <a className="logo-button" href={window.location.pathname} onClick={returnToApp} aria-label="Zur Wahlspinne">
               <img src={logo} alt="Wahlspinne" className="logo" />
             </a>
           </header>
@@ -861,7 +867,7 @@ function App() {
             <div className="info-page-content" aria-label={`Inhalt: ${pageTitles[infoPage]}`}>
               <p>Inhalt folgt.</p>
             </div>
-            <a className="info-page-back" href="#">Zurück zur Wahlspinne</a>
+            <a className="info-page-back" href={window.location.pathname} onClick={returnToApp}>Zurück zur Wahlspinne</a>
           </main>
           <footer className="app-footer">
             <div className="footer-content">
