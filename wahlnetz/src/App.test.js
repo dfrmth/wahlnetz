@@ -16,12 +16,12 @@ test('shows ten grouped questions in the questionnaire', () => {
     'Frieden',
     'Sicherheit',
     'Migration',
-    'Bürgergeld/Wohnen',
+    'Sozialstaat',
     'Arbeit',
-    'Rente & Pflege',
-    'Kinder & Bildung',
-    'Sport & Kultur',
-    'Haushalt & Klima',
+    'Lebensabend',
+    'Jugend',
+    'Freizeit',
+    'Haushalt',
     'Steuern',
   ];
 

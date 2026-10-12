@@ -90,12 +90,12 @@ const questions = [
   { id: 0, topic: "Frieden", question: "Frieden: Soft Power (1) oder Abschreckung (10)", description: "(Entscheidungshilfe: Abhängigkeiten vs. Kosten)" },
   { id: 1, topic: "Sicherheit", question: "Sicherheit: Freiheit (1) oder Kontrolle (10)", description: "(Entscheidungshilfe: Überwachungsstaat vs. Kriminalitätsbekämpfung)" },
   { id: 2, topic: "Migration", question: "Migration: offen (1) oder restriktiv (10)", description: "(Entscheidungshilfe: Überforderung vs. Fachkräftemangel)" },
-  { id: 3, topic: "Bürgergeld/Wohnen", question: "Bürgergeld/Wohnen: Eigenverantwortung (1) oder Sicherheitsnetz (10)", description: "(Entscheidungshilfe: Ungleichheit vs. Kosten)" },
+  { id: 3, topic: "Sozialstaat", fiscalTopics: ["Bürgergeld/Wohnen"], question: "Sozialstaat: Eigenverantwortung (1) oder Sicherheitsnetz (10)", description: "(Entscheidungshilfe: Ungleichheit vs. Kosten)" },
   { id: 4, topic: "Arbeit", question: "Arbeit: Wirtschaftswachstum (1) oder Arbeitsbedingungen (10)", description: "(Entscheidungshilfe: weniger Unternehmenssteuern vs. weniger Unternehmen)" },
-  { id: 5, topic: "Rente & Pflege", fiscalTopics: ["Rente", "Pflege"], question: "Rente & Pflege: privat und individuelle Verantwortung (1) oder öffentliche Absicherung (10)", description: "(Entscheidungshilfe: Anlagerisiko und Eigenkosten vs. staatliche Kosten)" },
-  { id: 6, topic: "Kinder & Bildung", fiscalTopics: ["Kinder", "Bildung"], question: "Kinder & Bildung: Verantwortung bei Eltern und Leistung (1) oder staatliche Förderung (10)", description: "(Entscheidungshilfe: Eigenverantwortung und Auswahl vs. Teilhabe und Förderung)" },
-  { id: 7, topic: "Sport & Kultur", fiscalTopics: ["Sport", "Kultur"], question: "Sport & Kultur: Erfolge und Mainstream (1) oder Bürgergesundheit und Förderung (10)", description: "(Entscheidungshilfe: weniger Vielfalt und Prävention vs. öffentliche Kosten)" },
-  { id: 8, topic: "Haushalt & Klima/Energie", fiscalTopics: ["Haushalt", "Klima/Energie"], question: "Haushalt & Klima: Handlungsspielraum und Offenheit (1) oder Transformation und Klimaschutz (10)", description: "(Entscheidungshilfe: Investitionsstau und spätere Anpassungskosten vs. heutige Transformationskosten)" },
+  { id: 5, topic: "Lebensabend", fiscalTopics: ["Rente", "Pflege"], question: "Lebensabend: private und individuelle Verantwortung (1) oder öffentliche Absicherung (10)", description: "(Entscheidungshilfe: Anlagerisiko und Eigenkosten vs. staatliche Kosten)" },
+  { id: 6, topic: "Jugend", fiscalTopics: ["Kinder", "Bildung"], question: "Jugend: Verantwortung bei Eltern und Leistung (1) oder staatliche Förderung (10)", description: "(Entscheidungshilfe: Eigenverantwortung und Auswahl vs. Teilhabe und Förderung)" },
+  { id: 7, topic: "Freizeit", fiscalTopics: ["Sport", "Kultur"], question: "Freizeit: Erfolge und Mainstream (1) oder Bürgergesundheit und Förderung (10)", description: "(Entscheidungshilfe: weniger Vielfalt und Prävention vs. öffentliche Kosten)" },
+  { id: 8, topic: "Haushalt", fiscalTopics: ["Haushalt", "Klima/Energie"], question: "Haushalt: Handlungsspielraum und Offenheit (1) oder Transformation und Klimaschutz (10)", description: "(Entscheidungshilfe: Investitionsstau und spätere Anpassungskosten vs. heutige Transformationskosten)" },
   { id: 9, topic: "Steuern", question: "Steuern: Wachstum (1) oder Umverteilung (10)", description: "(Entscheidungshilfe: Ungleichheit vs. Steuerflucht)" }
 ];
 
